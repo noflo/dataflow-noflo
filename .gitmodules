@@ -1,0 +1,9 @@
+[submodule "libs/noflo"]
+	path = libs/noflo
+	url = https://github.com/bergie/noflo.git
+[submodule "libs/dataflow"]
+	path = libs/dataflow
+	url = https://github.com/meemoo/dataflow.git
+[submodule "demo/draggabilly"]
+	path = demo/draggabilly
+	url = https://github.com/d4tocchini/noflo-draggabilly.git
