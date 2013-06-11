@@ -4,6 +4,7 @@
 [submodule "libs/dataflow"]
 	path = libs/dataflow
 	url = https://github.com/meemoo/dataflow.git
-[submodule "demo/draggabilly"]
-	path = demo/draggabilly
+[submodule "demo/noflo-draggabilly"]
+	path = demo/noflo-draggabilly
 	url = https://github.com/d4tocchini/noflo-draggabilly.git
+	branch = gh-pages
