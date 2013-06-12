@@ -33,15 +33,17 @@
         background-color: hsl(230,10%,85%);
       }
       .area {
-        width: 600px;
-        height: 400px;
-        background-color: hsl(220,10%,90%);
+        width: 400px;
+        height: 300px;
+        background-color: hsla(220,10%,90%, 0.75);
         border: 1px hsl(220,10%,95%) solid;
         box-shadow:           
           inset 0 1px 4px hsla(220,20%,20%,.4);
         position: absolute;
         bottom: 0;
         left: 0;
+
+        z-index: 2;
       }
       .draggable {
         -webkit-user-drag: element;
@@ -71,18 +73,20 @@
         border: 1px hsl(220,10%,95%) solid;
       }
 
-      #dataflow {
+      #noflo-ui {
         position: absolute;
         top: 0;
         bottom: 0;
         left: 0;
         right: 0;
+
+        z-index: 1;
       }
 
     </style>
   </head>
   <body>
-    <div id="dataflow">
+    <div id="noflo-ui">
     </div>
     <div class="area">
       <img class="draggable" src="http://bergie.iki.fi/style/img/mdpi/bergie.jpg" >
@@ -92,7 +96,7 @@
     
     window.onload = function () {
 
-      var dataflow = new Dataflow({appendTo:"#dataflow"});
+      var dataflow = new Dataflow({appendTo:"#noflo-ui"});
       
       var noflo = require('noflo');
       var graph = new noflo.Graph('Movable image');
@@ -102,7 +106,7 @@
 
       // Dataflow-Noflo connection
       dataflow.plugins.noflo.registerGraph(graph);
-      
+
 
       // Logging
       graph.addNode('Log', 'Output');
@@ -120,9 +124,9 @@
 
       // Initial positioning for the image
       graph.addNode('AnchorX', 'Split');
-      graph.addInitial(250, 'AnchorX', 'in');
+      graph.addInitial(150, 'AnchorX', 'in');
       graph.addNode('AnchorY', 'Split');
-      graph.addInitial(150, 'AnchorY', 'in');
+      graph.addInitial(100, 'AnchorY', 'in');
       
       
       graph.addNode('DragX', 'Gate');
@@ -182,7 +186,7 @@
       
       // run the graph
       noflo.createNetwork(graph, function (network) {
-        console.log("Network created");
+        // console.log("Network created");
       });
     };
     </script>
