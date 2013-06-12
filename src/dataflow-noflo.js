@@ -134,33 +134,35 @@
       graph.on("removeNode", function(node){
       });
       graph.on("addEdge", function(edge){
-        // console.log(edge);
-        // var Edge = dataflow.module("edge");
-        // var dfEdge = new Edge.Model({
-        //   id: edge.from.node+":"+edge.from.port+"→"+edge.to.node+":"+edge.to.port,
-        //   parentGraph: dataflowGraph,
-        //   source: {
-        //     node: edge.from.node,
-        //     port: edge.from.port
-        //   },
-        //   target: {
-        //     node: edge.to.node,
-        //     port: edge.to.port
-        //   }
-        // });
-        // dataflowGraph.edges.add(dfEdge);
-        dataflowGraph.edges.add({
-          id: edge.from.node+":"+edge.from.port+"→"+edge.to.node+":"+edge.to.port,
-          parentGraph: dataflowGraph,
-          source: {
-            node: edge.from.node,
-            port: edge.from.port
-          },
-          target: {
-            node: edge.to.node,
-            port: edge.to.port
+        if (edge.from.node) {
+          // Add edge
+          dataflowGraph.edges.add({
+            id: edge.from.node+":"+edge.from.port+"→"+edge.to.node+":"+edge.to.port,
+            parentGraph: dataflowGraph,
+            source: {
+              node: edge.from.node,
+              port: edge.from.port
+            },
+            target: {
+              node: edge.to.node,
+              port: edge.to.port
+            }
+          });
+        } else {
+          // Set IIP
+          var node = dataflowGraph.nodes.get( edge.to.node );
+          if (node) {
+            var port = node.inputs.get( edge.to.port );
+            if (port) {
+              node.setState(edge.to.port, edge.from.data);
+              if (port.view) {
+                port.view.$("input").val(edge.from.data);
+              }
+            }
+          } else {
+            // TODO
           }
-        });
+        }
 
       });
       graph.on("removeEdge", function(edge){

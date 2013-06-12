@@ -88,8 +88,8 @@
   <body>
     <div id="noflo-ui">
     </div>
-    <div class="area">
-      <img class="draggable" src="http://meemoo.org/hack-our-apps/shots/recursive.png" >
+    <div class="area" title=".area">
+      <img class="draggable" title=".draggable" src="http://meemoo.org/hack-our-apps/shots/recursive.png" >
     </div>
 
     <script>
@@ -109,35 +109,35 @@
 
 
       // Logging
-      graph.addNode('Log', 'Output');
-      graph.addNode('LogSplit', 'Split');
+      graph.addNode('Log', 'Output', {"x": 1430, "y": 30});
+      graph.addNode('LogSplit', 'Split', {"x": 1180, "y": 30});
       
       // Container IIP must pass before image! 
-      graph.addNode('Touch', 'draggabilly/Draggabilly');
-      graph.addNode('Container', 'GetElement');
-      // graph.addInitial('.area', 'Container', 'selector'); 
+      graph.addNode('Touch', 'draggabilly/Draggabilly', {"x": 410, "y": 180});
+      graph.addNode('Container', 'GetElement', {"x": 90, "y": 20});
+      graph.addInitial('.area', 'Container', 'selector'); 
 
       // The image element, selected from DOM with CSS selector
-      graph.addNode('Image', 'GetElement');
-      // graph.addInitial('.area .draggable', 'Image', 'selector'); 
-      graph.addNode('SendElement', 'Split');
+      graph.addNode('Image', 'GetElement', {"x": 90, "y": 200});
+      graph.addInitial('.area .draggable', 'Image', 'selector'); 
+      graph.addNode('SendElement', 'Split', {"x": 90, "y": 390});
 
       // Initial positioning for the image
-      graph.addNode('AnchorX', 'Split');
-      // graph.addInitial(150, 'AnchorX', 'in');
-      graph.addNode('AnchorY', 'Split');
-      // graph.addInitial(100, 'AnchorY', 'in');
+      graph.addNode('AnchorX', 'Split', {"x": 750, "y": 40});
+      graph.addInitial(150, 'AnchorX', 'in');
+      graph.addNode('AnchorY', 'Split', {"x": 750, "y": 150});
+      graph.addInitial(100, 'AnchorY', 'in');
       
       
-      graph.addNode('DragX', 'Gate');
-      graph.addNode('DragY', 'Gate');
-      graph.addNode('NewX', 'Kick');
-      graph.addNode('SpringX', 'Spring');
-      graph.addNode('NewY', 'Kick');
-      graph.addNode('SpringY', 'Spring');
-      graph.addNode('PosX', 'Merge');
-      graph.addNode('PosY', 'Merge');
-      graph.addNode('Move', 'MoveElement');
+      graph.addNode('DragX', 'Gate', {"x": 750, "y": 290});
+      graph.addNode('DragY', 'Gate', {"x": 750, "y": 460});
+      graph.addNode('NewX', 'Kick', {"x": 750, "y": 630});
+      graph.addNode('SpringX', 'Spring', {"x": 1140, "y": 250});
+      graph.addNode('NewY', 'Kick', {"x": 750, "y": 770});
+      graph.addNode('SpringY', 'Spring', {"x": 1140, "y": 400});
+      graph.addNode('PosX', 'Merge', {"x": 1450, "y": 300});
+      graph.addNode('PosY', 'Merge', {"x": 1450, "y": 430});
+      graph.addNode('Move', 'MoveElement', {"x": 1480, "y": 700});
       
       
       graph.addEdge('Container', 'element', 'Touch', 'container');
