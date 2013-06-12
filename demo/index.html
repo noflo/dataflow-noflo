@@ -89,7 +89,7 @@
     <div id="noflo-ui">
     </div>
     <div class="area">
-      <img class="draggable" src="http://bergie.iki.fi/style/img/mdpi/bergie.jpg" >
+      <img class="draggable" src="http://meemoo.org/hack-our-apps/shots/recursive.png" >
     </div>
 
     <script>
@@ -115,18 +115,18 @@
       // Container IIP must pass before image! 
       graph.addNode('Touch', 'draggabilly/Draggabilly');
       graph.addNode('Container', 'GetElement');
-      graph.addInitial('.area', 'Container', 'selector'); 
+      // graph.addInitial('.area', 'Container', 'selector'); 
 
       // The image element, selected from DOM with CSS selector
       graph.addNode('Image', 'GetElement');
-      graph.addInitial('.area .draggable', 'Image', 'selector'); 
+      // graph.addInitial('.area .draggable', 'Image', 'selector'); 
       graph.addNode('SendElement', 'Split');
 
       // Initial positioning for the image
       graph.addNode('AnchorX', 'Split');
-      graph.addInitial(150, 'AnchorX', 'in');
+      // graph.addInitial(150, 'AnchorX', 'in');
       graph.addNode('AnchorY', 'Split');
-      graph.addInitial(100, 'AnchorY', 'in');
+      // graph.addInitial(100, 'AnchorY', 'in');
       
       
       graph.addNode('DragX', 'Gate');

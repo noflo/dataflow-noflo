@@ -32,7 +32,6 @@
   });
 
   var baseExtender = function(name, component) {
-    console.log(component);
     var inputs = [];
     for (var inName in component.inPorts) {
       var nfi = component.inPorts[inName];
@@ -77,9 +76,6 @@
     var noflo = require('noflo');
 
     DataflowNoflo.registerGraph = function(graph) {
-      // Show graph
-      dataflow.loadGraph({});
-
       // Plugin: library
       var cl = new noflo.ComponentLoader();
       cl.baseDir = graph.baseDir;
@@ -94,7 +90,6 @@
       dataflow.plugins.library.update({
         exclude: ["base", "base-resizable", "test", "noflo-base"]
       });
-
 
       // Plugin: source
       var sourceChanged = function(graph) {
@@ -118,6 +113,57 @@
       graph.on("removeEdge", function(edge){
         dataflow.plugins.log.add( "edge removed: " + JSON.stringify(edge) );
         sourceChanged(graph);
+      });
+
+
+      // Sync Dataflow and Noflo graphs
+      var dataflowGraph = dataflow.loadGraph({});
+
+      // Noflo to Dataflow
+      graph.on("addNode", function(node){
+        var type = dataflow.node(node.component);
+        var dfNode = new type.Model({
+          id: node.id,
+          label: node.id,
+          x: node.metadata.x !== undefined ? node.metadata.x : Math.floor(Math.random()*800),
+          y: node.metadata.y !== undefined ? node.metadata.y : Math.floor(Math.random()*600),
+          parentGraph: dataflowGraph
+        });
+        dataflowGraph.nodes.add(dfNode);
+      });
+      graph.on("removeNode", function(node){
+      });
+      graph.on("addEdge", function(edge){
+        // console.log(edge);
+        // var Edge = dataflow.module("edge");
+        // var dfEdge = new Edge.Model({
+        //   id: edge.from.node+":"+edge.from.port+"→"+edge.to.node+":"+edge.to.port,
+        //   parentGraph: dataflowGraph,
+        //   source: {
+        //     node: edge.from.node,
+        //     port: edge.from.port
+        //   },
+        //   target: {
+        //     node: edge.to.node,
+        //     port: edge.to.port
+        //   }
+        // });
+        // dataflowGraph.edges.add(dfEdge);
+        dataflowGraph.edges.add({
+          id: edge.from.node+":"+edge.from.port+"→"+edge.to.node+":"+edge.to.port,
+          parentGraph: dataflowGraph,
+          source: {
+            node: edge.from.node,
+            port: edge.from.port
+          },
+          target: {
+            node: edge.to.node,
+            port: edge.to.port
+          }
+        });
+
+      });
+      graph.on("removeEdge", function(edge){
       });
 
     };
