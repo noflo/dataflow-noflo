@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Draggabilly</title>
+
+  <style>
+    .box {
+      width:  100px;
+      height: 100px;
+      background: red;
+    }
+
+    #ex1 {
+      position: relative;
+      left: 200px;
+      top: 50px;
+    }
+
+    #ex2 {
+      background: blue;
+    }
+
+    #has-handles {
+      position: relative;
+      left: 240px;
+      top: 100px;
+      background: orange;
+    }
+
+    .handle {
+      background: #666;
+      position: absolute;
+      width: 40px;
+      height: 40px;
+    }
+
+    #has-handles .handle2 {
+      right: 10px;
+      bottom: 10px;
+    }
+
+    .is-dragging {
+      opacity: 0.5;
+      /* hack for artifacts http://stackoverflow.com/a/12023155 */
+      -webkit-backface-visibility: hidden;
+    }
+
+    .container {
+      border: 1px solid;
+      position: relative;
+    }
+
+    .container:after {
+      content: '';
+      display: block;
+      clear: both;
+    }
+
+    #container1 {
+      width: 150px;
+    }
+
+    #container1 .box {
+      float: left;
+      margin: 5px;
+      width: 38px;
+      height: 38px;
+      border: 1px solid;
+      background: orange;
+    }
+
+  </style>
+
+</head>
+<body>
+
+  <h1>Draggabilly</h1>
+
+  <div id="ex1" class="box">
+    <div class="handle"></div>
+  </div>
+  <div id="ex2" class="box"></div>
+
+  <div id="has-handles" class="box">
+    <div class="handle handle1"></div>
+    <div class="handle handle2"></div>
+  </div>
+
+  <div id="container1" class="container">
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+    <div class="box"></div>
+  </div>
+
+  <p>Press [B] to enable/disable the blue draggabilly</p>
+
+<script src="components/eventEmitter/EventEmitter.js"></script>
+<script src="components/eventie/eventie.js"></script>
+<script src="components/get-style-property/get-style-property.js"></script>
+<script src="components/classie/classie.js"></script>
+<script src="components/get-size/get-size.js"></script>
+<script src="draggabilly.js"></script>
+<script>
+
+
+window.onload = function() {
+
+  var ex1 = document.getElementById('ex1');
+  var drag1 = new Draggabilly( ex1 );
+
+  var ex2 = document.getElementById('ex2');
+  var drag2 = new Draggabilly( ex2 );
+
+
+  drag2.on( 'dragStart', function( instance, event, pointer ) {
+    console.log('dragStart', instance.position.x, instance.position.y, event.type, pointer.pageX, pointer.pageY );
+  });
+
+  drag2.on( 'dragMove', function( instance, event, pointer ) {
+    console.log('dragMove', instance.position.x, instance.position.y, event.type, pointer.pageX, pointer.pageY );
+  });
+
+  drag2.on( 'dragEnd', function( instance, event, pointer ) {
+    console.log( 'dragEnd', instance.position.x, instance.position.y, event && event.type, pointer && pointer.pageX, pointer && pointer.pageY );
+  });
+
+  var handleDraggie = new Draggabilly( document.querySelector('#has-handles'), {
+    handle: '.handle'
+  });
+
+  var container1Draggers = [];
+  var dragger;
+
+  var elems = document.querySelectorAll('#container1 .box');
+
+  function handleDraggerEvent( instance, event, pointer ) {
+    console.log( event.type, instance.position.x, instance.position.y );
+  }
+  for ( var i=0, len = elems.length; i < len; i++ ) {
+    dragger = new Draggabilly( elems[i], {
+      containment: true
+    });
+    dragger.on( 'dragStart', handleDraggerEvent );
+    dragger.on( 'dragEnd', handleDraggerEvent );
+  }
+
+  // toggle drag2 enable/disable on [B] keypress
+  eventie.bind( document, 'keyup', function( event ) {
+    var code = event.keyCode || event.which;
+    // console.log( code );
+    switch ( code ) {
+      case 66 : // B
+        drag2[ drag2.isEnabled ? 'disable' : 'enable' ]();
+        break;
+    }
+  });
+
+};
+</script>
+
+</body>
+</html>

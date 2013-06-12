@@ -1,0 +1,21 @@
+{
+  "name": "draggabilly",
+  "main": "draggabilly.js",
+  "version": "1.0.2",
+  "dependencies": {
+    "classie": "desandro/classie",
+    "eventEmitter": ">=3",
+    "eventie": "desandro/eventie",
+    "get-size": "desandro/get-size#>=1.0.0",
+    "get-style-property": "desandro/get-style-property"
+  },
+  "gitHead": "770e76de5d14fea0e1a3b75231f3f090a96f1651",
+  "readme": "# Draggabilly\n\n<p class=\"tagline\">Make that shiz draggable</p>\n\n[draggabilly.desandro.com](http://draggabilly.desandro.com)\n\nRad because it supports IE8+ and multi-touch.\n\n## Install\n\nGrab a packaged source file:\n\n+ [draggabilly.pkgd.min.js](http://draggabilly.desandro.com/draggabilly.pkgd.min.js) for production\n+ [draggabilly.pkgd.js](http://draggabilly.desandro.com/draggabilly.pkgd.js) for development\n\nOr if you're cool with the command line, install with [Bower](http://twitter.github.com/bower).\n\n``` bash\nbower install draggabilly\n```\n\n## Usage\n\n``` js\nvar elem = document.querySelector('#draggable');\nvar draggie = new Draggabilly( elem, {\n  // options...\n});\n```\n\nWhen dragging, Draggabillly will add the class `.is-dragging` to the element.\n\n## Options\n\n### containment\n\n**Type:** _Element_, Selector _String_, or _Boolean_\n\n``` js\ncontainment: '#container'\n```\n\nContains movement to the bounds of the element. If `true`, the container will be the parent element.\n\n### handle\n\n**Type:** Selector _String_\n\n``` js\nhandle: '.handle'\n```\n\nSpecifies on what element the drag interaction starts.\n\n## Events\n\nDraggabilly is an Event Emitter. You can bind event listeners to events.\n\n``` js\nvar draggie = new Draggabilly( elem );\n\nfunction onDragMove( instance, event, pointer ) {\n  console.log( 'dragMove on ' + event.type +\n    pointer.pageX + ', ' + pointer.pageY +\n    ' position at ' + instance.position.x + ', ' + instance.position.y );\n}\n// bind event listener\ndraggie.on( 'dragMove', onDragMove );\n// un-bind event listener\ndraggie.off( 'dragMove', onDragMove );\n// return true to trigger an event listener just once\ndraggie.on( 'dragMove', function() {\n  console.log('Draggabilly did move, just once');\n  return true;\n});\n```\n\n### dragStart\n\n```js\n.on( 'dragStart', function( draggieInstance, event, pointer ) { //...\n```\n\n+ `draggieInstance` - **Type:** _Draggabilly_ - the Draggabilly instance\n+ `event` - **Type:** _Event_ - the original `mousedown` or `touchstart` event\n+ `pointer` - **Type:** _MouseEvent_ or _Touch_ - the event object that has `.pageX` and `.pageY`\n\n### dragMove\n\n```js\n.on( 'dragMove', function( draggieInstance, event, pointer ) { //...\n```\n\n+ `draggieInstance` - **Type:** _Draggabilly_ - the Draggabilly instance\n+ `event` - **Type:** _Event_ - the original `mousemove` or `touchmove` event\n+ `pointer` - **Type:** _MouseEvent_ or _Touch_ - the event object that has `.pageX` and `.pageY`\n\n### dragEnd\n\n```js\n.on( 'dragEnd', function( draggieInstance, event, pointer ) { //...\n```\n\n+ `draggieInstance` - **Type:** _Draggabilly_ - the Draggabilly instance\n+ `event` - **Type:** _Event_ - the original `mouseup` or `touchend` event\n+ `pointer` - **Type:** _MouseEvent_ or _Touch_ - the event object that has `.pageX` and `.pageY`\n\n## Methods\n\n### disable\n\n``` js\ndraggie.disable()\n```\n\n### enable\n\n``` js\ndraggie.enable()\n```\n\n## License\n\nDraggabilly is released under the [MIT License](http://desandro.mit-license.org/). Have at it.\n",
+  "readmeFilename": "README.md",
+  "_id": "draggabilly@1.0.2",
+  "description": "<p class=\"tagline\">Make that shiz draggable</p>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/desandro/draggabilly"
+  }
+}

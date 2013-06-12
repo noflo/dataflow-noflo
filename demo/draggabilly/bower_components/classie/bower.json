@@ -1,0 +1,14 @@
+{
+  "name": "classie",
+  "main": "./classie.js",
+  "version": "1.0.0",
+  "gitHead": "3d7b886ed3c0e4e63093b2431688ad1267b52380",
+  "readme": "# Classie - class helper functions\n\n[Ripped from bonzo](https://github.com/ded/bonzo) :heart: @ded\n\n``` js\nclassie.has( element, 'my-class' ) // returns true/false\nclassie.add( element, 'my-new-class' ) // add new class\nclassie.remove( element, 'my-unwanted-class' ) // remove class\nclassie.toggle( element, 'my-class' ) // toggle class\n```\n\n## Bower\n\nThis script is a [Bower](https://github.com/twitter/bower) component.\n\n``` bash\nbower install desandro/classie\n```\n",
+  "readmeFilename": "README.md",
+  "_id": "classie@1.0.0",
+  "description": "[Ripped from bonzo](https://github.com/ded/bonzo) :heart: @ded",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/desandro/classie.git"
+  }
+}
