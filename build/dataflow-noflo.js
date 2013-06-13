@@ -93,10 +93,12 @@
       dataflow.plugins.library.update({
         exclude: ["base", "base-resizable", "test", "noflo-base"]
       });
+      dataflow.plugins.source.listeners(false);
       sourceChanged = function(graph) {
         return dataflow.plugins.source.show(JSON.stringify(graph.toJSON(), null, 2));
       };
       sourceChanged(graph);
+      dataflow.plugins.log.listeners(false);
       graph.on("addNode", function(node) {
         dataflow.plugins.log.add("node added: " + JSON.stringify(node));
         return sourceChanged(graph);
@@ -114,35 +116,47 @@
         return sourceChanged(graph);
       });
       dataflowGraph = dataflow.loadGraph({});
+      dataflowGraph.nofloGraph = graph;
+      graph.dataflowGraph = dataflowGraph;
       graph.on("addNode", function(node) {
         var dfNode, type;
-        type = dataflow.node(node.component);
-        dfNode = new type.Model({
-          id: node.id,
-          label: node.id,
-          x: (node.metadata.x !== undefined ? node.metadata.x : Math.floor(Math.random() * 800)),
-          y: (node.metadata.y !== undefined ? node.metadata.y : Math.floor(Math.random() * 600)),
-          parentGraph: dataflowGraph
-        });
-        return dataflowGraph.nodes.add(dfNode);
-      });
-      graph.on("removeNode", function(node) {});
-      graph.on("addEdge", function(edge) {
-        var node, port;
-        if (edge.from.node) {
-          return dataflowGraph.edges.add({
-            id: edge.from.node + ":" + edge.from.port + "→" + edge.to.node + ":" + edge.to.port,
-            parentGraph: dataflowGraph,
-            source: {
-              node: edge.from.node,
-              port: edge.from.port
-            },
-            target: {
-              node: edge.to.node,
-              port: edge.to.port
-            }
+        if (node.dataflowNode == null) {
+          type = dataflow.node(node.component);
+          dfNode = new type.Model({
+            id: node.id,
+            label: node.id,
+            x: (node.metadata.x !== undefined ? node.metadata.x : Math.floor(Math.random() * 800)),
+            y: (node.metadata.y !== undefined ? node.metadata.y : Math.floor(Math.random() * 600)),
+            parentGraph: dataflowGraph
           });
-        } else if (edge.from.data) {
+          dfNode.nofloNode = node;
+          node.dataflowNode = dfNode;
+          dataflowGraph.nodes.add(dfNode);
+        }
+        return node.dataflowNode;
+      });
+      graph.on("addEdge", function(edge) {
+        var Edge, dfEdge, node, port;
+        if ((edge.from.node != null) && (edge.to.node != null)) {
+          if (edge.dataflowEdge == null) {
+            Edge = dataflow.module("edge");
+            dfEdge = new Edge.Model({
+              id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
+              parentGraph: dataflowGraph,
+              source: {
+                node: edge.from.node,
+                port: edge.from.port
+              },
+              target: {
+                node: edge.to.node,
+                port: edge.to.port
+              }
+            });
+            dfEdge.nofloEdge = edge;
+            edge.dataflowEdge = dfEdge;
+            return dataflowGraph.edges.add(dfEdge);
+          }
+        } else if ((edge.from.data != null) && (edge.to.node != null)) {
           node = dataflowGraph.nodes.get(edge.to.node);
           if (node) {
             port = node.inputs.get(edge.to.port);
@@ -157,7 +171,42 @@
           }
         }
       });
-      return graph.on("removeEdge", function(edge) {});
+      graph.on("removeNode", function(node) {
+        if (node.dataflowNode != null) {
+          return node.dataflowNode.remove();
+        }
+      });
+      graph.on("removeEdge", function(edge) {
+        if ((edge.from.node != null) && (edge.to.node != null)) {
+          if (edge.dataflowEdge != null) {
+            return edge.dataflowEdge.remove();
+          }
+        }
+      });
+      dataflow.on("node:add", function(dfGraph, node) {
+        if (node.nofloNode == null) {
+          return node.nofloNode = graph.addNode(node.id, node.type, {
+            x: node.get("x"),
+            y: node.get("y")
+          });
+        }
+      });
+      dataflow.on("edge:add", function(dfGraph, edge) {
+        if (edge.nofloEdge == null) {
+          return edge.nofloEdge = graph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
+        }
+      });
+      dataflow.on("node:remove", function(dfGraph, node) {
+        if (node.nofloNode != null) {
+          return graph.removeNode(node.nofloNode.id);
+        }
+      });
+      dataflow.on("edge:remove", function(dfGraph, edge) {
+        if (edge.nofloEdge != null) {
+          return graph.removeEdge(edge.source.parentNode.id, edge.source.id);
+        }
+      });
+      return dataflowGraph;
     };
   };
 

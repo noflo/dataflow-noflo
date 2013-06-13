@@ -57,7 +57,7 @@ baseExtender = (name, component) ->
 
 makeDataflowNode = (name, component) ->
   newType = Dataflow::node(name)
-  newType.Model = NofloBase.Model.extend(baseExtender(name, component))
+  newType.Model = NofloBase.Model.extend( baseExtender(name, component) )
   newType.View = NofloBase.View.extend()
 
 
@@ -75,17 +75,20 @@ DataflowNoflo.initialize = (dataflow) ->
         cl.load name, (component) ->
           makeDataflowNode name, component
 
-    
     # Might have to wait for the load callbacks
     dataflow.plugins.library.update exclude: ["base", "base-resizable", "test", "noflo-base"]
     
     # Plugin: source
-    sourceChanged = (graph) ->
-      dataflow.plugins.source.show JSON.stringify(graph.toJSON(), null, 2)
+    dataflow.plugins.source.listeners false ;
+
+    sourceChanged = (graph) -> 
+      dataflow.plugins.source.show( JSON.stringify graph.toJSON(), null, 2 )
 
     sourceChanged graph
     
     # Plugin: log
+    dataflow.plugins.log.listeners false;
+
     graph.on "addNode", (node) ->
       dataflow.plugins.log.add "node added: " + JSON.stringify(node)
       sourceChanged graph
@@ -102,41 +105,57 @@ DataflowNoflo.initialize = (dataflow) ->
       dataflow.plugins.log.add "edge removed: " + JSON.stringify(edge)
       sourceChanged graph
     
+    # -
     # Sync Dataflow and Noflo graphs
-    dataflowGraph = dataflow.loadGraph({})
-    
-    # Noflo to Dataflow
-    graph.on "addNode", (node) ->
-      type = dataflow.node(node.component)
-      dfNode = new type.Model(
-        id: node.id
-        label: node.id
-        x: (if node.metadata.x isnt `undefined` then node.metadata.x else Math.floor(Math.random() * 800))
-        y: (if node.metadata.y isnt `undefined` then node.metadata.y else Math.floor(Math.random() * 600))
-        parentGraph: dataflowGraph
-      )
-      dataflowGraph.nodes.add dfNode
+    # -
 
-    graph.on "removeNode", (node) ->
-      #TODO
+    dataflowGraph = dataflow.loadGraph({})
+    dataflowGraph.nofloGraph = graph
+    graph.dataflowGraph = dataflowGraph
+
+    # -    
+    # Noflo to Dataflow
+    # -    
+
+    graph.on "addNode", (node) ->
+      unless node.dataflowNode?
+        type = dataflow.node(node.component)
+        dfNode = new type.Model(
+          id: node.id
+          label: node.id
+          x: (if node.metadata.x isnt `undefined` then node.metadata.x else Math.floor(Math.random() * 800))
+          y: (if node.metadata.y isnt `undefined` then node.metadata.y else Math.floor(Math.random() * 600))
+          parentGraph: dataflowGraph
+        )
+        # Reference each other
+        dfNode.nofloNode = node
+        node.dataflowNode = dfNode
+        # Add to graph
+        dataflowGraph.nodes.add dfNode
+      node.dataflowNode
 
     graph.on "addEdge", (edge) ->
-      if edge.from.node
-        
+      if edge.from.node? and edge.to.node?
         # Add edge
-        dataflowGraph.edges.add
-          id: edge.from.node + ":" + edge.from.port + "→" + edge.to.node + ":" + edge.to.port
-          parentGraph: dataflowGraph
-          source:
-            node: edge.from.node
-            port: edge.from.port
+        unless edge.dataflowEdge?
+          Edge = dataflow.module("edge");
+          dfEdge = new Edge.Model(
+            id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port
+            parentGraph: dataflowGraph
+            source:
+              node: edge.from.node
+              port: edge.from.port
+            target:
+              node: edge.to.node
+              port: edge.to.port
+          )
+          # Reference each other
+          dfEdge.nofloEdge = edge;
+          edge.dataflowEdge = dfEdge;
+          # Add to graph
+          dataflowGraph.edges.add dfEdge
 
-          target:
-            node: edge.to.node
-            port: edge.to.port
-
-      else if edge.from.data
-        
+      else if edge.from.data? and edge.to.node?
         # Set IIP
         node = dataflowGraph.nodes.get(edge.to.node)
         if node
@@ -147,12 +166,45 @@ DataflowNoflo.initialize = (dataflow) ->
               port.view.$("input").val edge.from.data
         else
           #TODO: added IIP before node?
+
+    graph.on "removeNode", (node) ->
+      if node.dataflowNode?
+        node.dataflowNode.remove()
+
     graph.on "removeEdge", (edge) ->
-      #TODO
+      if edge.from.node? and edge.to.node?
+        if edge.dataflowEdge?
+          edge.dataflowEdge.remove()
+
+    # -    
+    # Dataflow to Noflo
+    # -
+
+    dataflow.on "node:add", (dfGraph, node) -> 
+      unless node.nofloNode?
+        node.nofloNode = graph.addNode node.id, node.type, 
+          x: node.get "x"
+          y: node.get "y"
+
+    dataflow.on "edge:add", (dfGraph, edge) -> 
+      unless edge.nofloEdge?
+        edge.nofloEdge = graph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id
+
+    dataflow.on "node:remove", (dfGraph, node) -> 
+      if node.nofloNode?
+        graph.removeNode node.nofloNode.id
+
+    dataflow.on "edge:remove", (dfGraph, edge) -> 
+      if edge.nofloEdge?
+        graph.removeEdge edge.source.parentNode.id, edge.source.id
 
 
-# Dataflow.prototype.loadGraph = function (graph) {
-#   var g = new noflo.Graph(graph);
-#   DataflowNoflo.registerGraph(g);
-#   return g;
-# };
+    # return
+    dataflowGraph
+
+
+
+# Dataflow::loadGraph = (graph) ->
+#   g = new noflo.Graph graph ;
+#   DataflowNoflo.registerGraph g ;
+#   g
