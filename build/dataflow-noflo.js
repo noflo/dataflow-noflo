@@ -91,7 +91,7 @@
         return _results;
       });
       dataflow.plugins.library.update({
-        exclude: ["base", "base-resizable", "test", "noflo-base"]
+        exclude: ["base", "noflo-base"]
       });
       dataflow.plugins.source.listeners(false);
       sourceChanged = function(graph) {
@@ -202,8 +202,20 @@
         }
       });
       dataflow.on("edge:remove", function(dfGraph, edge) {
+        var index, _edge, _i, _len, _ref, _results;
         if (edge.nofloEdge != null) {
-          return graph.removeEdge(edge.source.parentNode.id, edge.source.id);
+          _ref = graph.edges;
+          _results = [];
+          for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+            _edge = _ref[index];
+            if (_edge === edge) {
+              graph.emit('removeEdge', edge);
+              _results.push(graph.edges.splice(index, 1));
+            } else {
+              _results.push(void 0);
+            }
+          }
+          return _results;
         }
       });
       return dataflowGraph;

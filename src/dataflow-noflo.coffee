@@ -34,7 +34,6 @@ baseExtender = (name, component) ->
     dfi =
       id: inName
       type: nfi.type 
-
     inputs.push dfi
   outputs = []
   for outName of component.outPorts
@@ -42,14 +41,12 @@ baseExtender = (name, component) ->
     dfo =
       id: outName
       type: nfo.type
-
     outputs.push dfo
   extender =
     defaults: ->
       defaults = NofloBase.Model::defaults.call(this)
       defaults.type = name
       defaults
-
     inputs: inputs
     outputs: outputs
 
@@ -76,7 +73,7 @@ DataflowNoflo.initialize = (dataflow) ->
           makeDataflowNode name, component
 
     # Might have to wait for the load callbacks
-    dataflow.plugins.library.update exclude: ["base", "base-resizable", "test", "noflo-base"]
+    dataflow.plugins.library.update exclude: ["base", "noflo-base"]
     
     # Plugin: source
     dataflow.plugins.source.listeners false ;
@@ -196,7 +193,11 @@ DataflowNoflo.initialize = (dataflow) ->
 
     dataflow.on "edge:remove", (dfGraph, edge) -> 
       if edge.nofloEdge?
-        graph.removeEdge edge.source.parentNode.id, edge.source.id
+        # graph.removeEdge edge.source.parentNode.id, edge.source.id
+        for _edge,index in graph.edges
+          if _edge is edge
+            graph.emit 'removeEdge', edge
+            graph.edges.splice index, 1
 
 
     # return
