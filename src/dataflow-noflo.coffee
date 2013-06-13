@@ -195,9 +195,9 @@ DataflowNoflo.initialize = (dataflow) ->
       if edge.nofloEdge?
         # graph.removeEdge edge.source.parentNode.id, edge.source.id
         for _edge,index in graph.edges
-          if _edge is edge
-            graph.emit 'removeEdge', edge
-            graph.edges.splice index, 1
+          if _edge is edge.nofloEdge
+            graph.emit 'removeEdge', edge.nofloEdge
+            graph.edges.splice index, 1 
 
 
     # return

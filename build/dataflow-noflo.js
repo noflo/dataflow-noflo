@@ -208,8 +208,8 @@
           _results = [];
           for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
             _edge = _ref[index];
-            if (_edge === edge) {
-              graph.emit('removeEdge', edge);
+            if (_edge === edge.nofloEdge) {
+              graph.emit('removeEdge', edge.nofloEdge);
               _results.push(graph.edges.splice(index, 1));
             } else {
               _results.push(void 0);
