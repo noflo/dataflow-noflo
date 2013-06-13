@@ -1,0 +1,158 @@
+# Make types
+# Dependencies
+Base = Dataflow::node("base")
+NofloBase = Dataflow::node("noflo-base")
+
+NofloBase.Model = Base.Model.extend(
+  defaults: ->
+    defaults = Base.Model::defaults.call(this)
+    defaults.type = "noflo-base"
+    defaults
+
+  initialize: ->
+    Base.Model::initialize.call this
+
+  unload: ->
+    # Stop any processes that need to be stopped
+
+  toJSON: ->
+    json = Base.Model::toJSON.call(this)
+    json
+
+  inputs: []
+  outputs: []
+)
+
+NofloBase.View = Base.View.extend(initialize: ->
+  Base.View::initialize.call this
+)
+
+baseExtender = (name, component) ->
+  inputs = []
+  for inName of component.inPorts
+    nfi = component.inPorts[inName]
+    dfi =
+      id: inName
+      type: nfi.type 
+
+    inputs.push dfi
+  outputs = []
+  for outName of component.outPorts
+    nfo = component.outPorts[outName]
+    dfo =
+      id: outName
+      type: nfo.type
+
+    outputs.push dfo
+  extender =
+    defaults: ->
+      defaults = NofloBase.Model::defaults.call(this)
+      defaults.type = name
+      defaults
+
+    inputs: inputs
+    outputs: outputs
+
+  extender
+
+makeDataflowNode = (name, component) ->
+  newType = Dataflow::node(name)
+  newType.Model = NofloBase.Model.extend(baseExtender(name, component))
+  newType.View = NofloBase.View.extend()
+
+
+# Make plugin
+DataflowNoflo = Dataflow::plugin("noflo")
+DataflowNoflo.initialize = (dataflow) ->
+  noflo = require("noflo")
+  DataflowNoflo.registerGraph = (graph) ->
+    
+    # Plugin: library
+    cl = new noflo.ComponentLoader()
+    cl.baseDir = graph.baseDir
+    cl.listComponents (types) ->
+      for name of types
+        cl.load name, (component) ->
+          makeDataflowNode name, component
+
+    
+    # Might have to wait for the load callbacks
+    dataflow.plugins.library.update exclude: ["base", "base-resizable", "test", "noflo-base"]
+    
+    # Plugin: source
+    sourceChanged = (graph) ->
+      dataflow.plugins.source.show JSON.stringify(graph.toJSON(), null, 2)
+
+    sourceChanged graph
+    
+    # Plugin: log
+    graph.on "addNode", (node) ->
+      dataflow.plugins.log.add "node added: " + JSON.stringify(node)
+      sourceChanged graph
+
+    graph.on "removeNode", (node) ->
+      dataflow.plugins.log.add "node removed: " + JSON.stringify(node)
+      sourceChanged graph
+
+    graph.on "addEdge", (edge) ->
+      dataflow.plugins.log.add "edge added: " + JSON.stringify(edge)
+      sourceChanged graph
+
+    graph.on "removeEdge", (edge) ->
+      dataflow.plugins.log.add "edge removed: " + JSON.stringify(edge)
+      sourceChanged graph
+    
+    # Sync Dataflow and Noflo graphs
+    dataflowGraph = dataflow.loadGraph({})
+    
+    # Noflo to Dataflow
+    graph.on "addNode", (node) ->
+      type = dataflow.node(node.component)
+      dfNode = new type.Model(
+        id: node.id
+        label: node.id
+        x: (if node.metadata.x isnt `undefined` then node.metadata.x else Math.floor(Math.random() * 800))
+        y: (if node.metadata.y isnt `undefined` then node.metadata.y else Math.floor(Math.random() * 600))
+        parentGraph: dataflowGraph
+      )
+      dataflowGraph.nodes.add dfNode
+
+    graph.on "removeNode", (node) ->
+      #TODO
+
+    graph.on "addEdge", (edge) ->
+      if edge.from.node
+        
+        # Add edge
+        dataflowGraph.edges.add
+          id: edge.from.node + ":" + edge.from.port + "→" + edge.to.node + ":" + edge.to.port
+          parentGraph: dataflowGraph
+          source:
+            node: edge.from.node
+            port: edge.from.port
+
+          target:
+            node: edge.to.node
+            port: edge.to.port
+
+      else if edge.from.data
+        
+        # Set IIP
+        node = dataflowGraph.nodes.get(edge.to.node)
+        if node
+          port = node.inputs.get(edge.to.port)
+          if port
+            node.setState edge.to.port, edge.from.data
+            if port.view
+              port.view.$("input").val edge.from.data
+        else
+          #TODO: added IIP before node?
+    graph.on "removeEdge", (edge) ->
+      #TODO
+
+
+# Dataflow.prototype.loadGraph = function (graph) {
+#   var g = new noflo.Graph(graph);
+#   DataflowNoflo.registerGraph(g);
+#   return g;
+# };
