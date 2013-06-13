@@ -62,11 +62,19 @@ makeDataflowNode = (name, component) ->
 DataflowNoflo = Dataflow::plugin("noflo")
 DataflowNoflo.initialize = (dataflow) ->
   noflo = require("noflo")
-  DataflowNoflo.registerGraph = (graph) ->
+  DataflowNoflo.registerGraph = (nofloGraph) ->
+
+    # -
+    # Sync Dataflow and Noflo graphs
+    # -
+
+    dataflowGraph = dataflow.loadGraph({})
+    dataflowGraph.nofloGraph = nofloGraph
+    nofloGraph.dataflowGraph = dataflowGraph
     
     # Plugin: library
     cl = new noflo.ComponentLoader()
-    cl.baseDir = graph.baseDir
+    cl.baseDir = nofloGraph.baseDir
     cl.listComponents (types) ->
       for name of types
         cl.load name, (component) ->
@@ -78,43 +86,33 @@ DataflowNoflo.initialize = (dataflow) ->
     # Plugin: source
     dataflow.plugins.source.listeners false ;
 
-    sourceChanged = (graph) -> 
-      dataflow.plugins.source.show( JSON.stringify graph.toJSON(), null, 2 )
+    sourceChanged = (o) -> 
+      dataflow.plugins.source.show( JSON.stringify o.toJSON(), null, 2 )
 
-    sourceChanged graph
+    # When df graph changes update source with nf graph
+    dataflowGraph.on "change", (dfGraph) ->
+      sourceChanged nofloGraph
     
     # Plugin: log
     dataflow.plugins.log.listeners false;
 
-    graph.on "addNode", (node) ->
+    nofloGraph.on "addNode", (node) ->
       dataflow.plugins.log.add "node added: " + JSON.stringify(node)
-      sourceChanged graph
 
-    graph.on "removeNode", (node) ->
+    nofloGraph.on "removeNode", (node) ->
       dataflow.plugins.log.add "node removed: " + JSON.stringify(node)
-      sourceChanged graph
 
-    graph.on "addEdge", (edge) ->
+    nofloGraph.on "addEdge", (edge) ->
       dataflow.plugins.log.add "edge added: " + JSON.stringify(edge)
-      sourceChanged graph
 
-    graph.on "removeEdge", (edge) ->
+    nofloGraph.on "removeEdge", (edge) ->
       dataflow.plugins.log.add "edge removed: " + JSON.stringify(edge)
-      sourceChanged graph
     
-    # -
-    # Sync Dataflow and Noflo graphs
-    # -
-
-    dataflowGraph = dataflow.loadGraph({})
-    dataflowGraph.nofloGraph = graph
-    graph.dataflowGraph = dataflowGraph
-
     # -    
     # Noflo to Dataflow
     # -    
 
-    graph.on "addNode", (node) ->
+    nofloGraph.on "addNode", (node) ->
       unless node.dataflowNode?
         type = dataflow.node(node.component)
         dfNode = new type.Model(
@@ -131,7 +129,7 @@ DataflowNoflo.initialize = (dataflow) ->
         dataflowGraph.nodes.add dfNode
       node.dataflowNode
 
-    graph.on "addEdge", (edge) ->
+    nofloGraph.on "addEdge", (edge) ->
       if edge.from.node? and edge.to.node?
         # Add edge
         unless edge.dataflowEdge?
@@ -164,11 +162,11 @@ DataflowNoflo.initialize = (dataflow) ->
         else
           #TODO: added IIP before node?
 
-    graph.on "removeNode", (node) ->
+    nofloGraph.on "removeNode", (node) ->
       if node.dataflowNode?
         node.dataflowNode.remove()
 
-    graph.on "removeEdge", (edge) ->
+    nofloGraph.on "removeEdge", (edge) ->
       if edge.from.node? and edge.to.node?
         if edge.dataflowEdge?
           edge.dataflowEdge.remove()
@@ -179,25 +177,25 @@ DataflowNoflo.initialize = (dataflow) ->
 
     dataflow.on "node:add", (dfGraph, node) -> 
       unless node.nofloNode?
-        node.nofloNode = graph.addNode node.id, node.type, 
+        node.nofloNode = nofloGraph.addNode node.id, node.type, 
           x: node.get "x"
           y: node.get "y"
 
     dataflow.on "edge:add", (dfGraph, edge) -> 
       unless edge.nofloEdge?
-        edge.nofloEdge = graph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id
+        edge.nofloEdge = nofloGraph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id
 
     dataflow.on "node:remove", (dfGraph, node) -> 
       if node.nofloNode?
-        graph.removeNode node.nofloNode.id
+        nofloGraph.removeNode node.nofloNode.id
 
     dataflow.on "edge:remove", (dfGraph, edge) -> 
       if edge.nofloEdge?
         # graph.removeEdge edge.source.parentNode.id, edge.source.id
-        for _edge,index in graph.edges
+        for _edge,index in nofloGraph.edges
           if _edge is edge.nofloEdge
-            graph.emit 'removeEdge', edge.nofloEdge
-            graph.edges.splice index, 1 
+            nofloGraph.emit 'removeEdge', edge.nofloEdge
+            nofloGraph.edges.splice index, 1 
 
 
     # return

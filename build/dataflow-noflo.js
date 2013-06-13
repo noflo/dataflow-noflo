@@ -76,10 +76,13 @@
   DataflowNoflo.initialize = function(dataflow) {
     var noflo;
     noflo = require("noflo");
-    return DataflowNoflo.registerGraph = function(graph) {
+    return DataflowNoflo.registerGraph = function(nofloGraph) {
       var cl, dataflowGraph, sourceChanged;
+      dataflowGraph = dataflow.loadGraph({});
+      dataflowGraph.nofloGraph = nofloGraph;
+      nofloGraph.dataflowGraph = dataflowGraph;
       cl = new noflo.ComponentLoader();
-      cl.baseDir = graph.baseDir;
+      cl.baseDir = nofloGraph.baseDir;
       cl.listComponents(function(types) {
         var name, _results;
         _results = [];
@@ -94,31 +97,26 @@
         exclude: ["base", "noflo-base"]
       });
       dataflow.plugins.source.listeners(false);
-      sourceChanged = function(graph) {
-        return dataflow.plugins.source.show(JSON.stringify(graph.toJSON(), null, 2));
+      sourceChanged = function(o) {
+        return dataflow.plugins.source.show(JSON.stringify(o.toJSON(), null, 2));
       };
-      sourceChanged(graph);
+      dataflowGraph.on("change", function(dfGraph) {
+        return sourceChanged(nofloGraph);
+      });
       dataflow.plugins.log.listeners(false);
-      graph.on("addNode", function(node) {
-        dataflow.plugins.log.add("node added: " + JSON.stringify(node));
-        return sourceChanged(graph);
+      nofloGraph.on("addNode", function(node) {
+        return dataflow.plugins.log.add("node added: " + JSON.stringify(node));
       });
-      graph.on("removeNode", function(node) {
-        dataflow.plugins.log.add("node removed: " + JSON.stringify(node));
-        return sourceChanged(graph);
+      nofloGraph.on("removeNode", function(node) {
+        return dataflow.plugins.log.add("node removed: " + JSON.stringify(node));
       });
-      graph.on("addEdge", function(edge) {
-        dataflow.plugins.log.add("edge added: " + JSON.stringify(edge));
-        return sourceChanged(graph);
+      nofloGraph.on("addEdge", function(edge) {
+        return dataflow.plugins.log.add("edge added: " + JSON.stringify(edge));
       });
-      graph.on("removeEdge", function(edge) {
-        dataflow.plugins.log.add("edge removed: " + JSON.stringify(edge));
-        return sourceChanged(graph);
+      nofloGraph.on("removeEdge", function(edge) {
+        return dataflow.plugins.log.add("edge removed: " + JSON.stringify(edge));
       });
-      dataflowGraph = dataflow.loadGraph({});
-      dataflowGraph.nofloGraph = graph;
-      graph.dataflowGraph = dataflowGraph;
-      graph.on("addNode", function(node) {
+      nofloGraph.on("addNode", function(node) {
         var dfNode, type;
         if (node.dataflowNode == null) {
           type = dataflow.node(node.component);
@@ -135,7 +133,7 @@
         }
         return node.dataflowNode;
       });
-      graph.on("addEdge", function(edge) {
+      nofloGraph.on("addEdge", function(edge) {
         var Edge, dfEdge, node, port;
         if ((edge.from.node != null) && (edge.to.node != null)) {
           if (edge.dataflowEdge == null) {
@@ -171,12 +169,12 @@
           }
         }
       });
-      graph.on("removeNode", function(node) {
+      nofloGraph.on("removeNode", function(node) {
         if (node.dataflowNode != null) {
           return node.dataflowNode.remove();
         }
       });
-      graph.on("removeEdge", function(edge) {
+      nofloGraph.on("removeEdge", function(edge) {
         if ((edge.from.node != null) && (edge.to.node != null)) {
           if (edge.dataflowEdge != null) {
             return edge.dataflowEdge.remove();
@@ -185,7 +183,7 @@
       });
       dataflow.on("node:add", function(dfGraph, node) {
         if (node.nofloNode == null) {
-          return node.nofloNode = graph.addNode(node.id, node.type, {
+          return node.nofloNode = nofloGraph.addNode(node.id, node.type, {
             x: node.get("x"),
             y: node.get("y")
           });
@@ -193,24 +191,24 @@
       });
       dataflow.on("edge:add", function(dfGraph, edge) {
         if (edge.nofloEdge == null) {
-          return edge.nofloEdge = graph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
+          return edge.nofloEdge = nofloGraph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
         }
       });
       dataflow.on("node:remove", function(dfGraph, node) {
         if (node.nofloNode != null) {
-          return graph.removeNode(node.nofloNode.id);
+          return nofloGraph.removeNode(node.nofloNode.id);
         }
       });
       dataflow.on("edge:remove", function(dfGraph, edge) {
         var index, _edge, _i, _len, _ref, _results;
         if (edge.nofloEdge != null) {
-          _ref = graph.edges;
+          _ref = nofloGraph.edges;
           _results = [];
           for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
             _edge = _ref[index];
             if (_edge === edge.nofloEdge) {
-              graph.emit('removeEdge', edge.nofloEdge);
-              _results.push(graph.edges.splice(index, 1));
+              nofloGraph.emit('removeEdge', edge.nofloEdge);
+              _results.push(nofloGraph.edges.splice(index, 1));
             } else {
               _results.push(void 0);
             }
