@@ -1,5 +1,5 @@
 (function() {
-  var Base, DataflowNoflo, NofloBase, baseExtender, makeDataflowNode;
+  var Base, DataflowNoflo, NofloBase, baseExtender, makeDataflowNodeProto;
 
   Base = Dataflow.prototype.node("base");
 
@@ -64,7 +64,7 @@
     return extender;
   };
 
-  makeDataflowNode = function(name, component) {
+  makeDataflowNodeProto = function(name, component) {
     var newType;
     newType = Dataflow.prototype.node(name);
     newType.Model = NofloBase.Model.extend(baseExtender(name, component));
@@ -81,6 +81,21 @@
       dataflowGraph = dataflow.loadGraph({});
       dataflowGraph.nofloGraph = nofloGraph;
       nofloGraph.dataflowGraph = dataflowGraph;
+      dataflow.addContext({
+        id: "rename",
+        icon: "edit",
+        label: "rename",
+        action: function() {
+          var selected;
+          if (dataflowGraph.selected.length > 0) {
+            selected = dataflowGraph.selected[0];
+            if (selected.view) {
+              return selected.view.showControls();
+            }
+          }
+        },
+        contexts: ["one"]
+      });
       cl = new noflo.ComponentLoader();
       cl.baseDir = nofloGraph.baseDir;
       cl.listComponents(function(types) {
@@ -88,7 +103,7 @@
         _results = [];
         for (name in types) {
           _results.push(cl.load(name, function(component) {
-            return makeDataflowNode(name, component);
+            return makeDataflowNodeProto(name, component);
           }));
         }
         return _results;
@@ -123,8 +138,8 @@
           dfNode = new type.Model({
             id: node.id,
             label: node.id,
-            x: (node.metadata.x !== undefined ? node.metadata.x : Math.floor(Math.random() * 800)),
-            y: (node.metadata.y !== undefined ? node.metadata.y : Math.floor(Math.random() * 600)),
+            x: (node.metadata.x != null ? node.metadata.x : 300),
+            y: (node.metadata.y != null ? node.metadata.y : 300),
             parentGraph: dataflowGraph
           });
           dfNode.nofloNode = node;

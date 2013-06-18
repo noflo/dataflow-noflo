@@ -52,7 +52,7 @@ baseExtender = (name, component) ->
 
   extender
 
-makeDataflowNode = (name, component) ->
+makeDataflowNodeProto = (name, component) ->
   newType = Dataflow::node(name)
   newType.Model = NofloBase.Model.extend( baseExtender(name, component) )
   newType.View = NofloBase.View.extend()
@@ -61,6 +61,7 @@ makeDataflowNode = (name, component) ->
 # Make plugin
 DataflowNoflo = Dataflow::plugin("noflo")
 DataflowNoflo.initialize = (dataflow) ->
+
   noflo = require("noflo")
   DataflowNoflo.registerGraph = (nofloGraph) ->
 
@@ -71,6 +72,19 @@ DataflowNoflo.initialize = (dataflow) ->
     dataflowGraph = dataflow.loadGraph({})
     dataflowGraph.nofloGraph = nofloGraph
     nofloGraph.dataflowGraph = dataflowGraph
+
+    # contextBar action: rename
+    dataflow.addContext(
+      id: "rename"
+      icon: "edit"
+      label: "rename"
+      action: ->
+        if dataflowGraph.selected.length > 0
+          selected = dataflowGraph.selected[0]
+          if selected.view
+            selected.view.showControls()
+      contexts: ["one"]
+    );
     
     # Plugin: library
     cl = new noflo.ComponentLoader()
@@ -78,23 +92,23 @@ DataflowNoflo.initialize = (dataflow) ->
     cl.listComponents (types) ->
       for name of types
         cl.load name, (component) ->
-          makeDataflowNode name, component
+          makeDataflowNodeProto name, component
 
-    # Might have to wait for the load callbacks
+    # Might have to wait for the load callbacks?
     dataflow.plugins.library.update exclude: ["base", "noflo-base"]
     
     # Plugin: source
-    dataflow.plugins.source.listeners false ;
+    dataflow.plugins.source.listeners false
 
     sourceChanged = (o) -> 
-      dataflow.plugins.source.show( JSON.stringify o.toJSON(), null, 2 )
+      dataflow.plugins.source.show( JSON.stringify(o.toJSON(), null, 2) )
 
     # When df graph changes update source with nf graph
     dataflowGraph.on "change", (dfGraph) ->
       sourceChanged nofloGraph
     
     # Plugin: log
-    dataflow.plugins.log.listeners false;
+    dataflow.plugins.log.listeners false
 
     nofloGraph.on "addNode", (node) ->
       dataflow.plugins.log.add "node added: " + JSON.stringify(node)
@@ -118,8 +132,8 @@ DataflowNoflo.initialize = (dataflow) ->
         dfNode = new type.Model(
           id: node.id
           label: node.id
-          x: (if node.metadata.x isnt `undefined` then node.metadata.x else Math.floor(Math.random() * 800))
-          y: (if node.metadata.y isnt `undefined` then node.metadata.y else Math.floor(Math.random() * 600))
+          x: ( if node.metadata.x? then node.metadata.x else 300 )
+          y: ( if node.metadata.y? then node.metadata.y else 300 )
           parentGraph: dataflowGraph
         )
         # Reference each other
@@ -191,7 +205,6 @@ DataflowNoflo.initialize = (dataflow) ->
 
     dataflow.on "edge:remove", (dfGraph, edge) -> 
       if edge.nofloEdge?
-        # graph.removeEdge edge.source.parentNode.id, edge.source.id
         for _edge,index in nofloGraph.edges
           if _edge is edge.nofloEdge
             nofloGraph.emit 'removeEdge', edge.nofloEdge
@@ -202,8 +215,7 @@ DataflowNoflo.initialize = (dataflow) ->
     dataflowGraph
 
 
-
 # Dataflow::loadGraph = (graph) ->
-#   g = new noflo.Graph graph ;
-#   DataflowNoflo.registerGraph g ;
+#   g = new noflo.Graph graph
+#   DataflowNoflo.registerGraph g
 #   g
