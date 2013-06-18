@@ -198,11 +198,30 @@
       });
       dataflow.on("node:add", function(dfGraph, node) {
         if (node.nofloNode == null) {
-          return node.nofloNode = nofloGraph.addNode(node.id, node.type, {
+          node.nofloNode = nofloGraph.addNode(node.id, node.type, {
             x: node.get("x"),
             y: node.get("y")
           });
         }
+        return node.on("change:label", function(node, newName) {
+          var edge, index, oldName, _i, _len, _ref, _results;
+          oldName = node.nofloNode.id;
+          node.nofloNode.id = newName;
+          _ref = nofloGraph.edges;
+          _results = [];
+          for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
+            edge = _ref[index];
+            if ((edge.from != null) && edge.from.node === oldName) {
+              edge.from.node = newName;
+            }
+            if ((edge.to != null) && edge.to.node === oldName) {
+              _results.push(edge.to.node = newName);
+            } else {
+              _results.push(void 0);
+            }
+          }
+          return _results;
+        });
       });
       dataflow.on("edge:add", function(dfGraph, edge) {
         if (edge.nofloEdge == null) {

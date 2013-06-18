@@ -194,6 +194,15 @@ DataflowNoflo.initialize = (dataflow) ->
         node.nofloNode = nofloGraph.addNode node.id, node.type, 
           x: node.get "x"
           y: node.get "y"
+      # sync rename
+      node.on "change:label", (node, newName) ->
+        oldName = node.nofloNode.id
+        node.nofloNode.id = newName
+        for edge, index in nofloGraph.edges
+          if edge.from? and edge.from.node is oldName
+            edge.from.node = newName
+          if edge.to? and edge.to.node is oldName
+            edge.to.node = newName
 
     dataflow.on "edge:add", (dfGraph, edge) -> 
       unless edge.nofloEdge?
@@ -205,7 +214,7 @@ DataflowNoflo.initialize = (dataflow) ->
 
     dataflow.on "edge:remove", (dfGraph, edge) -> 
       if edge.nofloEdge?
-        for _edge,index in nofloGraph.edges
+        for _edge, index in nofloGraph.edges
           if _edge is edge.nofloEdge
             nofloGraph.emit 'removeEdge', edge.nofloEdge
             nofloGraph.edges.splice index, 1 
