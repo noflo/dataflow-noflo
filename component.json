@@ -18,8 +18,9 @@
     "d4tocchini/noflo-draggabilly": "*"
   },
   "scripts": [
-    "build/dataflow-noflo.js"
+    "src/dataflow-noflo.coffee"
   ],
+  "main": "src/dataflow-noflo.js",
   "json": [
     "component.json"
   ]

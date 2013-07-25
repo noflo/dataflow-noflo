@@ -5,6 +5,7 @@
 
     <title>Dataflow-NoFlo-Draggabilly demo</title>
 
+    <!-- Draggabilly and dependencies -->
     <script src="draggabilly/bower_components/eventEmitter/EventEmitter.js"></script>
     <script src="draggabilly/bower_components/eventie/eventie.js"></script>
     <script src="draggabilly/bower_components/get-style-property/get-style-property.js"></script>
@@ -14,19 +15,18 @@
     <script src="draggabilly/dist/draggabilly.js"></script>
 
     <!-- Dataflow Libraries -->
-    <script src="../libs/dataflow/libs/jquery.js"></script>
-    <script src="../libs/dataflow/libs/jquery-ui.js"></script>
-    <script src="../libs/dataflow/libs/jquery.ui.touch-punch.js"></script>
-    <script src="../libs/dataflow/libs/underscore.js"></script>
-    <script src="../libs/dataflow/libs/backbone.js"></script>
+    <script src="../build/meemoo-dataflow/libs/jquery.js"></script>
+    <script src="../build/meemoo-dataflow/libs/jquery-ui.js"></script>
+    <script src="../build/meemoo-dataflow/libs/jquery.ui.touch-punch.js"></script>
+    <script src="../build/meemoo-dataflow/libs/underscore.js"></script>
+    <script src="../build/meemoo-dataflow/libs/backbone.js"></script>
+    <script src="../build/meemoo-dataflow/libs/hammer.min.js"></script>
 
     <!-- Dataflow -->
-    <script src="../libs/dataflow/build/dataflow.min.js"></script>
-    <script src="../libs/dataflow/src/nodes/base.js"></script>
     <script src="../build/dataflow-noflo.js"></script>
 
     <!-- Dataflow Style -->
-    <link rel="stylesheet" href="../libs/dataflow/build/dataflow.min.css">
+    <link rel="stylesheet" href="../build/meemoo-dataflow/build/dataflow.min.css">
 
     <style>
 
@@ -94,8 +94,9 @@
     </div>
 
     <script>
-    
     window.onload = function () {
+      var Dataflow = require('/meemoo-dataflow').Dataflow;
+      require('/dataflow-noflo');
 
       var dataflow = new Dataflow({appendTo:"#noflo-ui"});
       
@@ -103,11 +104,10 @@
       var graph = new noflo.Graph('Movable image');
 
       // Which component to start with when loading components
-      graph.baseDir = 'noflo-draggabilly';
+      graph.baseDir = '/dataflow-noflo';
 
       // Dataflow-Noflo connection
       dataflow.plugins.noflo.registerGraph(graph);
-
 
       // Logging
       graph.addNode('Log', 'Output', {"x": 1430, "y": 30});
@@ -115,11 +115,11 @@
       
       // Container IIP must pass before image! 
       graph.addNode('Touch', 'draggabilly/Draggabilly', {"x": 410, "y": 180});
-      graph.addNode('Container', 'GetElement', {"x": 90, "y": 20});
+      graph.addNode('Container', 'dom/GetElement', {"x": 90, "y": 20});
       graph.addInitial('.area', 'Container', 'selector'); 
 
       // The image element, selected from DOM with CSS selector
-      graph.addNode('Image', 'GetElement', {"x": 90, "y": 200});
+      graph.addNode('Image', 'dom/GetElement', {"x": 90, "y": 200});
       graph.addInitial('.area .draggable', 'Image', 'selector'); 
       graph.addNode('SendElement', 'Split', {"x": 90, "y": 390});
 
@@ -138,7 +138,7 @@
       graph.addNode('SpringY', 'Spring', {"x": 1140, "y": 400});
       graph.addNode('PosX', 'Merge', {"x": 1450, "y": 300});
       graph.addNode('PosY', 'Merge', {"x": 1450, "y": 430});
-      graph.addNode('Move', 'MoveElement', {"x": 1480, "y": 700});
+      graph.addNode('Move', 'dom/MoveElement', {"x": 1480, "y": 700});
       
       
       graph.addEdge('Container', 'element', 'Touch', 'container');
