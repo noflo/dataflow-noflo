@@ -120,62 +120,24 @@ DataflowNoflo.initialize = (dataflow) ->
     nofloGraph.on "addEdge", (edge) ->
       dataflow.plugins.log.add "edge added: " + JSON.stringify(edge)
 
+    nofloGraph.on "addInitial", (iip) ->
+      dataflow.plugins.log.add "IIP added: " + JSON.stringify(iip)
+
     nofloGraph.on "removeEdge", (edge) ->
       dataflow.plugins.log.add "edge removed: " + JSON.stringify(edge)
     
     # -    
     # Noflo to Dataflow
-    # -    
+    # -
 
     nofloGraph.on "addNode", (node) ->
-      unless node.dataflowNode?
-        type = dataflow.node(node.component)
-        dfNode = new type.Model(
-          id: node.id
-          label: node.id
-          x: ( if node.metadata.x? then node.metadata.x else 300 )
-          y: ( if node.metadata.y? then node.metadata.y else 300 )
-          parentGraph: dataflowGraph
-        )
-        # Reference each other
-        dfNode.nofloNode = node
-        node.dataflowNode = dfNode
-        # Add to graph
-        dataflowGraph.nodes.add dfNode
-      node.dataflowNode
+      DataflowNoflo.addNode node, dataflowGraph
 
     nofloGraph.on "addEdge", (edge) ->
-      if edge.from.node? and edge.to.node?
-        # Add edge
-        unless edge.dataflowEdge?
-          Edge = dataflow.module("edge");
-          dfEdge = new Edge.Model(
-            id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port
-            parentGraph: dataflowGraph
-            source:
-              node: edge.from.node
-              port: edge.from.port
-            target:
-              node: edge.to.node
-              port: edge.to.port
-          )
-          # Reference each other
-          dfEdge.nofloEdge = edge;
-          edge.dataflowEdge = dfEdge;
-          # Add to graph
-          dataflowGraph.edges.add dfEdge
+      DataflowNoflo.addEdge edge, dataflowGraph
 
-      else if edge.from.data? and edge.to.node?
-        # Set IIP
-        node = dataflowGraph.nodes.get(edge.to.node)
-        if node
-          port = node.inputs.get(edge.to.port)
-          if port
-            node.setState edge.to.port, edge.from.data
-            if port.view
-              port.view.$("input").val edge.from.data
-        else
-          #TODO: added IIP before node?
+    nofloGraph.on "addInitial", (iip) ->
+      DataflowNoflo.addInitial iip, dataflowGraph
 
     nofloGraph.on "removeNode", (node) ->
       if node.dataflowNode?
@@ -220,10 +182,61 @@ DataflowNoflo.initialize = (dataflow) ->
             nofloGraph.emit 'removeEdge', edge.nofloEdge
             nofloGraph.edges.splice index, 1 
 
+    DataflowNoflo.addNode node, dataflowGraph for node in nofloGraph.nodes
+    DataflowNoflo.addEdge edge, dataflowGraph for edge in nofloGraph.edges
+    DataflowNoflo.addInitial iip, dataflowGraph for iip in nofloGraph.initializers
 
     # return
     dataflowGraph
 
+  DataflowNoflo.addNode = (node, dataflowGraph) ->
+    unless node.dataflowNode?
+      type = dataflow.node(node.component)
+      dfNode = new type.Model(
+        id: node.id
+        label: node.id
+        x: ( if node.metadata.x? then node.metadata.x else 300 )
+        y: ( if node.metadata.y? then node.metadata.y else 300 )
+        parentGraph: dataflowGraph
+      )
+      # Reference each other
+      dfNode.nofloNode = node
+      node.dataflowNode = dfNode
+      # Add to graph
+      dataflowGraph.nodes.add dfNode
+    node.dataflowNode
+
+  DataflowNoflo.addEdge = (edge, dataflowGraph) ->
+    # Add edge
+    unless edge.dataflowEdge?
+      Edge = dataflow.module("edge");
+      dfEdge = new Edge.Model(
+        id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port
+        parentGraph: dataflowGraph
+        source:
+          node: edge.from.node
+          port: edge.from.port
+        target:
+          node: edge.to.node
+          port: edge.to.port
+      )
+      # Reference each other
+      dfEdge.nofloEdge = edge;
+      edge.dataflowEdge = dfEdge;
+      # Add to graph
+      dataflowGraph.edges.add dfEdge
+
+  DataflowNoflo.addInitial = (iip, dataflowGraph) ->
+    # Set IIP
+    node = dataflowGraph.nodes.get(iip.to.node)
+    if node
+      port = node.inputs.get(iip.to.port)
+      if port
+        node.setState iip.to.port, iip.from.data
+        if port.view
+          port.view.$("input").val iip.from.data
+    else
+      #TODO: added IIP before node?
 
 # Dataflow::loadGraph = (graph) ->
 #   g = new noflo.Graph graph
