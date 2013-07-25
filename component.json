@@ -1,0 +1,25 @@
+{
+  "name": "dataflow-noflo",
+  "description": "bergie/noflo graphs editable with meemoo/dataflow",
+  "author": "Forrest Oliphant <forrest@sembiki.com>",
+  "repo": "forresto/dataflow-noflo",
+  "version": "0.0.1",
+  "keywords": [
+    "fbp",
+    "noflo",
+    "graph",
+    "visual",
+    "dataflow"
+  ],
+  "dependencies": {
+    "meemoo/dataflow": "*",
+    "bergie/noflo": "*",
+    "bergie/noflo-dom": "*"
+  },
+  "scripts": [
+    "build/dataflow-noflo.js"
+  ],
+  "json": [
+    "component.json"
+  ]
+}
