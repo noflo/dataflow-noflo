@@ -3,15 +3,42 @@ module.exports = ->
   @initConfig
     pkg: @file.readJSON 'package.json'
 
-    # CoffeeScript compilation
-    coffee:
-      src:
-        expand: true
-        cwd: 'src'
-        src: ['**.coffee']
-        dest: 'build'
-        ext: '.js'
-    
+    # Browser version building
+    component:
+      install:
+        options:
+          action: 'install'
+    component_build:
+      'dataflow-noflo':
+        output: './build/'
+        config: './component.json'
+        scripts: true
+        styles: false
+        plugins: ['coffee']
+        configure: (builder) ->
+          # Enable Component plugins
+          json = require 'component-json'
+          builder.use json()
+
+    # Fix broken Component aliases, as mentioned in
+    # https://github.com/anthonyshort/component-coffee/issues/3
+    combine:
+      browser:
+        input: 'build/dataflow-noflo.js'
+        output: 'build/dataflow-noflo.js'
+        tokens: [
+          token: '.coffee'
+          string: '.js'
+        ]
+
+    # JavaScript minification for the browser
+    uglify:
+      options:
+        report: 'min'
+      noflo:
+        files:
+          './build/dataflow-noflo.min.js': ['./build/dataflow-noflo.js']
+
     # Simple host
     connect:
       options:
@@ -22,7 +49,7 @@ module.exports = ->
     # Automated recompilation and testing when developing
     watch:
       files: ['src/*.coffee']
-      tasks: ['coffee']
+      tasks: ['build']
 
     # Release automation
     bumpup: ['package.json', 'component.json']
@@ -36,11 +63,10 @@ module.exports = ->
         cmd: 'npm publish'
 
   # Grunt plugins used for building
-  @loadNpmTasks 'grunt-contrib-coffee'
-  # @loadNpmTasks 'grunt-component'
-  # @loadNpmTasks 'grunt-component-build'
-  # @loadNpmTasks 'grunt-combine'
-  # @loadNpmTasks 'grunt-contrib-uglify'
+  @loadNpmTasks 'grunt-component'
+  @loadNpmTasks 'grunt-component-build'
+  @loadNpmTasks 'grunt-combine'
+  @loadNpmTasks 'grunt-contrib-uglify'
   # @loadNpmTasks 'grunt-contrib-copy'
 
   # Grunt plugins used for testing
@@ -54,4 +80,5 @@ module.exports = ->
   # @loadNpmTasks 'grunt-exec'
 
   @registerTask 'dev', ['connect', 'watch']
+  @registerTask 'build', ['component', 'component_build', 'combine', 'uglify']
   @registerTask 'default', ['test']

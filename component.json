@@ -13,8 +13,9 @@
   ],
   "dependencies": {
     "meemoo/dataflow": "*",
-    "bergie/noflo": "*",
-    "bergie/noflo-dom": "*"
+    "noflo/noflo": "*",
+    "noflo/noflo-dom": "*",
+    "d4tocchini/noflo-draggabilly": "*"
   },
   "scripts": [
     "build/dataflow-noflo.js"
