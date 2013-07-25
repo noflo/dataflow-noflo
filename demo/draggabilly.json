@@ -4,20 +4,6 @@
   },
   "exports": [],
   "processes": {
-    "Log": {
-      "component": "Output",
-      "metadata": {
-        "x": 1430,
-        "y": 30
-      }
-    },
-    "LogSplit": {
-      "component": "Split",
-      "metadata": {
-        "x": 1180,
-        "y": 30
-      }
-    },
     "Touch": {
       "component": "draggabilly/Draggabilly",
       "metadata": {
