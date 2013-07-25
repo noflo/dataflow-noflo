@@ -1,3 +1,4 @@
+{Dataflow} = require '/meemoo-dataflow'
 # Make types
 # Dependencies
 Base = Dataflow::node("base")
@@ -23,9 +24,9 @@ NofloBase.Model = Base.Model.extend(
   outputs: []
 )
 
-NofloBase.View = Base.View.extend(initialize: ->
-  Base.View::initialize.call this
-)
+NofloBase.View = Base.View.extend
+  initialize: (options) ->
+    Base.View::initialize.call this, options
 
 baseExtender = (name, component) ->
   inputs = []
@@ -84,7 +85,7 @@ DataflowNoflo.initialize = (dataflow) ->
           if selected.view
             selected.view.showControls()
       contexts: ["one"]
-    );
+    )
     
     # Plugin: library
     cl = new noflo.ComponentLoader()

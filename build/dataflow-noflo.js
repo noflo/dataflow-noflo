@@ -8789,7 +8789,6 @@ DataflowNoflo.initialize = function(dataflow) {
     cl.baseDir = nofloGraph.baseDir;
     cl.listComponents(function(types) {
       var name, _results;
-      console.log(types);
       _results = [];
       for (name in types) {
         _results.push(cl.load(name, function(component) {
