@@ -19,6 +19,8 @@ module.exports = ->
           # Enable Component plugins
           json = require 'component-json'
           builder.use json()
+          # Copy files
+          builder.copyFiles()
 
     # Fix broken Component aliases, as mentioned in
     # https://github.com/anthonyshort/component-coffee/issues/3
