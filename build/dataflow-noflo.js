@@ -8609,8 +8609,8 @@ NoFloDraggabilly = (function(_super) {
     };
     this.outPorts = {
       start: new noflo.ArrayPort('object'),
-      moveX: new noflo.ArrayPort('number'),
-      moveY: new noflo.ArrayPort('number'),
+      movex: new noflo.ArrayPort('number'),
+      movey: new noflo.ArrayPort('number'),
       end: new noflo.ArrayPort('object')
     };
     this.inPorts.container.on("data", function(data) {
@@ -8653,21 +8653,21 @@ NoFloDraggabilly = (function(_super) {
   NoFloDraggabilly.prototype.dragstart = function(draggie, event, pointer) {
     this.outPorts.start.send(event);
     this.outPorts.start.disconnect();
-    this.outPorts.moveX.send(draggie.position.x);
-    return this.outPorts.moveY.send(draggie.position.y);
+    this.outPorts.movex.send(draggie.position.x);
+    return this.outPorts.movey.send(draggie.position.y);
   };
 
   NoFloDraggabilly.prototype.dragmove = function(draggie, event, pointer) {
-    this.outPorts.moveX.send(draggie.position.x);
-    return this.outPorts.moveY.send(draggie.position.y);
+    this.outPorts.movex.send(draggie.position.x);
+    return this.outPorts.movey.send(draggie.position.y);
   };
 
   NoFloDraggabilly.prototype.dragend = function(draggie, event, pointer) {
-    if (this.outPorts.moveX.isConnected()) {
-      this.outPorts.moveX.disconnect();
+    if (this.outPorts.movex.isConnected()) {
+      this.outPorts.movex.disconnect();
     }
-    if (this.outPorts.moveY.isConnected()) {
-      this.outPorts.moveY.disconnect();
+    if (this.outPorts.movey.isConnected()) {
+      this.outPorts.movey.disconnect();
     }
     this.outPorts.end.send(event);
     return this.outPorts.end.disconnect();
@@ -8765,8 +8765,8 @@ DataflowNoflo = Dataflow.prototype.plugin("noflo");
 DataflowNoflo.initialize = function(dataflow) {
   var noflo;
   noflo = require("noflo");
-  return DataflowNoflo.registerGraph = function(nofloGraph) {
-    var cl, dataflowGraph, sourceChanged;
+  DataflowNoflo.registerGraph = function(nofloGraph) {
+    var cl, dataflowGraph, edge, iip, node, sourceChanged, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
     dataflowGraph = dataflow.loadGraph({});
     dataflowGraph.nofloGraph = nofloGraph;
     nofloGraph.dataflowGraph = dataflowGraph;
@@ -8817,61 +8817,20 @@ DataflowNoflo.initialize = function(dataflow) {
     nofloGraph.on("addEdge", function(edge) {
       return dataflow.plugins.log.add("edge added: " + JSON.stringify(edge));
     });
+    nofloGraph.on("addInitial", function(iip) {
+      return dataflow.plugins.log.add("IIP added: " + JSON.stringify(iip));
+    });
     nofloGraph.on("removeEdge", function(edge) {
       return dataflow.plugins.log.add("edge removed: " + JSON.stringify(edge));
     });
     nofloGraph.on("addNode", function(node) {
-      var dfNode, type;
-      if (node.dataflowNode == null) {
-        type = dataflow.node(node.component);
-        dfNode = new type.Model({
-          id: node.id,
-          label: node.id,
-          x: (node.metadata.x != null ? node.metadata.x : 300),
-          y: (node.metadata.y != null ? node.metadata.y : 300),
-          parentGraph: dataflowGraph
-        });
-        dfNode.nofloNode = node;
-        node.dataflowNode = dfNode;
-        dataflowGraph.nodes.add(dfNode);
-      }
-      return node.dataflowNode;
+      return DataflowNoflo.addNode(node, dataflowGraph);
     });
     nofloGraph.on("addEdge", function(edge) {
-      var Edge, dfEdge, node, port;
-      if ((edge.from.node != null) && (edge.to.node != null)) {
-        if (edge.dataflowEdge == null) {
-          Edge = dataflow.module("edge");
-          dfEdge = new Edge.Model({
-            id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
-            parentGraph: dataflowGraph,
-            source: {
-              node: edge.from.node,
-              port: edge.from.port
-            },
-            target: {
-              node: edge.to.node,
-              port: edge.to.port
-            }
-          });
-          dfEdge.nofloEdge = edge;
-          edge.dataflowEdge = dfEdge;
-          return dataflowGraph.edges.add(dfEdge);
-        }
-      } else if ((edge.from.data != null) && (edge.to.node != null)) {
-        node = dataflowGraph.nodes.get(edge.to.node);
-        if (node) {
-          port = node.inputs.get(edge.to.port);
-          if (port) {
-            node.setState(edge.to.port, edge.from.data);
-            if (port.view) {
-              return port.view.$("input").val(edge.from.data);
-            }
-          }
-        } else {
-
-        }
-      }
+      return DataflowNoflo.addEdge(edge, dataflowGraph);
+    });
+    nofloGraph.on("addInitial", function(iip) {
+      return DataflowNoflo.addInitial(iip, dataflowGraph);
     });
     nofloGraph.on("removeNode", function(node) {
       if (node.dataflowNode != null) {
@@ -8939,7 +8898,75 @@ DataflowNoflo.initialize = function(dataflow) {
         return _results;
       }
     });
+    _ref = nofloGraph.nodes;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      DataflowNoflo.addNode(node, dataflowGraph);
+    }
+    _ref1 = nofloGraph.edges;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      edge = _ref1[_j];
+      DataflowNoflo.addEdge(edge, dataflowGraph);
+    }
+    _ref2 = nofloGraph.initializers;
+    for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+      iip = _ref2[_k];
+      DataflowNoflo.addInitial(iip, dataflowGraph);
+    }
     return dataflowGraph;
+  };
+  DataflowNoflo.addNode = function(node, dataflowGraph) {
+    var dfNode, type;
+    if (node.dataflowNode == null) {
+      type = dataflow.node(node.component);
+      dfNode = new type.Model({
+        id: node.id,
+        label: node.id,
+        x: (node.metadata.x != null ? node.metadata.x : 300),
+        y: (node.metadata.y != null ? node.metadata.y : 300),
+        parentGraph: dataflowGraph
+      });
+      dfNode.nofloNode = node;
+      node.dataflowNode = dfNode;
+      dataflowGraph.nodes.add(dfNode);
+    }
+    return node.dataflowNode;
+  };
+  DataflowNoflo.addEdge = function(edge, dataflowGraph) {
+    var Edge, dfEdge;
+    if (edge.dataflowEdge == null) {
+      Edge = dataflow.module("edge");
+      dfEdge = new Edge.Model({
+        id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
+        parentGraph: dataflowGraph,
+        source: {
+          node: edge.from.node,
+          port: edge.from.port
+        },
+        target: {
+          node: edge.to.node,
+          port: edge.to.port
+        }
+      });
+      dfEdge.nofloEdge = edge;
+      edge.dataflowEdge = dfEdge;
+      return dataflowGraph.edges.add(dfEdge);
+    }
+  };
+  return DataflowNoflo.addInitial = function(iip, dataflowGraph) {
+    var node, port;
+    node = dataflowGraph.nodes.get(iip.to.node);
+    if (node) {
+      port = node.inputs.get(iip.to.port);
+      if (port) {
+        node.setState(iip.to.port, iip.from.data);
+        if (port.view) {
+          return port.view.$("input").val(iip.from.data);
+        }
+      }
+    } else {
+
+    }
   };
 };
 

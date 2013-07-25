@@ -95,99 +95,26 @@
 
     <script>
     window.onload = function () {
+      // Dependencies
       var Dataflow = require('/meemoo-dataflow').Dataflow;
       require('/dataflow-noflo');
-
-      var dataflow = new Dataflow({appendTo:"#noflo-ui"});
-      
       var noflo = require('noflo');
-      var graph = new noflo.Graph('Movable image');
 
-      // Which component to start with when loading components
-      graph.baseDir = '/dataflow-noflo';
+      // Load graph JSON
+      $.getJSON('draggabilly.json', function (graphDefinition) {
+        noflo.graph.loadJSON(graphDefinition, function (graph) {
+          // Which component to start with when loading components
+          graph.baseDir = '/dataflow-noflo';
 
-      // Dataflow-Noflo connection
-      dataflow.plugins.noflo.registerGraph(graph);
+          var dataflow = new Dataflow({appendTo:"#noflo-ui"});
 
-      // Logging
-      graph.addNode('Log', 'Output', {"x": 1430, "y": 30});
-      graph.addNode('LogSplit', 'Split', {"x": 1180, "y": 30});
+          // Dataflow-Noflo connection
+          dataflow.plugins.noflo.registerGraph(graph);
       
-      // Container IIP must pass before image! 
-      graph.addNode('Touch', 'draggabilly/Draggabilly', {"x": 410, "y": 180});
-      graph.addNode('Container', 'dom/GetElement', {"x": 90, "y": 20});
-      graph.addInitial('.area', 'Container', 'selector'); 
-
-      // The image element, selected from DOM with CSS selector
-      graph.addNode('Image', 'dom/GetElement', {"x": 90, "y": 200});
-      graph.addInitial('.area .draggable', 'Image', 'selector'); 
-      graph.addNode('SendElement', 'Split', {"x": 90, "y": 390});
-
-      // Initial positioning for the image
-      graph.addNode('AnchorX', 'Split', {"x": 750, "y": 40});
-      graph.addInitial(150, 'AnchorX', 'in');
-      graph.addNode('AnchorY', 'Split', {"x": 750, "y": 150});
-      graph.addInitial(100, 'AnchorY', 'in');
-      
-      
-      graph.addNode('DragX', 'Gate', {"x": 750, "y": 290});
-      graph.addNode('DragY', 'Gate', {"x": 750, "y": 460});
-      graph.addNode('NewX', 'Kick', {"x": 750, "y": 630});
-      graph.addNode('SpringX', 'Spring', {"x": 1140, "y": 250});
-      graph.addNode('NewY', 'Kick', {"x": 750, "y": 770});
-      graph.addNode('SpringY', 'Spring', {"x": 1140, "y": 400});
-      graph.addNode('PosX', 'Merge', {"x": 1450, "y": 300});
-      graph.addNode('PosY', 'Merge', {"x": 1450, "y": 430});
-      graph.addNode('Move', 'dom/MoveElement', {"x": 1480, "y": 700});
-      
-      
-      graph.addEdge('Container', 'element', 'Touch', 'container');
-      // Pass the image element to nodes that need it      
-      graph.addEdge('Image', 'element', 'SendElement', 'in');
-      graph.addEdge('SendElement', 'out', 'Touch', 'element');
-      graph.addEdge('SendElement', 'out', 'Move', 'element');
-
-      // initial left-right positioning
-      graph.addEdge('AnchorX', 'out', 'PosX', 'in');
-      graph.addEdge('PosX', 'out', 'Move', 'x');      
-
-      // initial up-down positioning
-      graph.addEdge('AnchorY', 'out', 'PosY', 'in');
-      graph.addEdge('PosY', 'out', 'Move', 'y');
-
-      // left-right axis dragging
-      graph.addEdge('Touch', 'start', 'DragX', 'open');
-      //graph.addEdge('Touch', 'moveX', 'DragX', 'in'); // handled internally by Draggabilly
-      graph.addEdge('Touch', 'end', 'DragX', 'close');
-      graph.addEdge('DragX', 'out', 'PosX', 'in');
-
-      // left-right axis return when touch ends
-      graph.addEdge('AnchorX', 'out', 'SpringX', 'anchor');
-      graph.addEdge('Touch', 'moveX', 'NewX', 'data');
-      graph.addEdge('Touch', 'end', 'NewX', 'in');
-      graph.addEdge('NewX', 'out', 'SpringX', 'in');
-      graph.addEdge('SpringX', 'out', 'PosX', 'in');
-
-      // up-down axis dragging
-      graph.addEdge('Touch', 'start', 'DragY', 'open');
-      //graph.addEdge('Touch', 'moveY', 'DragY', 'in'); // handled internally by Draggabilly
-      graph.addEdge('Touch', 'end', 'DragY', 'close');
-      graph.addEdge('DragY', 'out', 'PosY', 'in');
-
-      // up-down axis return when touch ends
-      graph.addEdge('AnchorY', 'out', 'SpringY', 'anchor');
-      graph.addEdge('Touch', 'moveY', 'NewY', 'data');
-      graph.addEdge('Touch', 'end', 'NewY', 'in');
-      graph.addEdge('NewY', 'out', 'SpringY', 'in');
-      graph.addEdge('SpringY', 'out', 'PosY', 'in');
-
-      // write graph JSON to textarea
-      // var g = document.getElementById('graph');
-      // g.value = JSON.stringify(graph.toJSON(), null, 2);
-      
-      // run the graph
-      noflo.createNetwork(graph, function (network) {
-        // console.log("Network created");
+          // Run the graph
+          noflo.createNetwork(graph, function (network) {
+          });
+        });
       });
     };
     </script>
