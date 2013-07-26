@@ -129,7 +129,6 @@ DataflowNoflo.initialize = (dataflow) ->
     # -    
     # Noflo to Dataflow
     # -
-
     nofloGraph.on "addNode", (node) ->
       DataflowNoflo.addNode node, dataflowGraph
 
@@ -151,36 +150,37 @@ DataflowNoflo.initialize = (dataflow) ->
     # -    
     # Dataflow to Noflo
     # -
-
-    dataflow.on "node:add", (dfGraph, node) -> 
+    dataflow.on "node:add", (dfGraph, node) ->
       unless node.nofloNode?
-        node.nofloNode = nofloGraph.addNode node.id, node.type, 
+        node.nofloNode = nofloGraph.addNode node.id, node.type,
           x: node.get "x"
           y: node.get "y"
       # sync rename
       node.on "change:label", (node, newName) ->
         oldName = node.nofloNode.id
-        node.nofloNode.id = newName
-        for edge, index in nofloGraph.edges
-          if edge.from? and edge.from.node is oldName
-            edge.from.node = newName
-          if edge.to? and edge.to.node is oldName
-            edge.to.node = newName
+        nofloGraph.renameNode oldName, newName
+      node.on "change:state", (port, value) ->
+        metadata = {}
+        for iip in nofloGraph.initializers
+          continue unless iip
+          if iip.to.node is node.nofloNode.id and iip.to.port is port
+            return if iip.from.data is value
+            metadata = iip.metadata
+            nofloGraph.removeInitial node.nofloNode.id, port
+        nofloGraph.addInitial value, node.nofloNode.id, port, metadata
 
-    dataflow.on "edge:add", (dfGraph, edge) -> 
+    dataflow.on "edge:add", (dfGraph, edge) ->
       unless edge.nofloEdge?
         edge.nofloEdge = nofloGraph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id
 
-    dataflow.on "node:remove", (dfGraph, node) -> 
+    dataflow.on "node:remove", (dfGraph, node) ->
       if node.nofloNode?
         nofloGraph.removeNode node.nofloNode.id
 
-    dataflow.on "edge:remove", (dfGraph, edge) -> 
+    dataflow.on "edge:remove", (dfGraph, edge) ->
       if edge.nofloEdge?
-        for _edge, index in nofloGraph.edges
-          if _edge is edge.nofloEdge
-            nofloGraph.emit 'removeEdge', edge.nofloEdge
-            nofloGraph.edges.splice index, 1 
+        e = edge.nofloEdge
+        nofloGraph.removeEdge e.from.node, edge.from.port, edge.to.node, edge.to.port
 
     DataflowNoflo.addNode node, dataflowGraph for node in nofloGraph.nodes
     DataflowNoflo.addEdge edge, dataflowGraph for edge in nofloGraph.edges
@@ -209,8 +209,8 @@ DataflowNoflo.initialize = (dataflow) ->
   DataflowNoflo.addEdge = (edge, dataflowGraph) ->
     # Add edge
     unless edge.dataflowEdge?
-      Edge = dataflow.module("edge");
-      dfEdge = new Edge.Model(
+      Edge = dataflow.module "edge"
+      dfEdge = new Edge.Model
         id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port
         parentGraph: dataflowGraph
         source:
@@ -219,10 +219,10 @@ DataflowNoflo.initialize = (dataflow) ->
         target:
           node: edge.to.node
           port: edge.to.port
-      )
+
       # Reference each other
-      dfEdge.nofloEdge = edge;
-      edge.dataflowEdge = dfEdge;
+      dfEdge.nofloEdge = edge
+      edge.dataflowEdge = dfEdge
       # Add to graph
       dataflowGraph.edges.add dfEdge
 
@@ -233,8 +233,6 @@ DataflowNoflo.initialize = (dataflow) ->
       port = node.inputs.get(iip.to.port)
       if port
         node.setState iip.to.port, iip.from.data
-        if port.view
-          port.view.$("input").val iip.from.data
     else
       #TODO: added IIP before node?
 

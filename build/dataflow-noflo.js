@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-26 (12:16:11 AM GMT+0200)
+/*! dataflow.js - v0.0.7 - 2013-07-26 (3:16:00 AM GMT+0200)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1069,6 +1069,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     setState: function (name, value) {
       var state = this.get("state");
+      if (state[name] === value) {
+        return;
+      }
       state[name] = value;
       if (this["input"+name]){
         this["input"+name](value);
@@ -1891,121 +1894,116 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
 
       // Initialize direct input
-      var input;
       var type = this.model.get("type");
       var state = this.model.parentNode.get("state");
       options = this.model.get("options");
       if (options !== undefined) {
-        // Select dropdown
-        // Find default
-        var val;
-        if (state && state[this.model.id] !== undefined){
-          // Use the stored state
-          val = state[this.model.id];
-        } else if (this.model.get("value") !== undefined) {
-          // Use the default
-          val = this.model.get("value");
+        // Normalize options
+        if (_.isString(options)) {
+          options = options.split(' ');
+          this.model.set('options', options);
         }
-        // Convert options
-        if (typeof options === "string") {
-          options = options.split(" ");
-        }
-        if ($.isArray(options)){
-          // Convert array to object
+        if (_.isArray(options)) {
           var o = {};
           for (var i=0; i<options.length; i++){
             o[options[i]] = options[i];
           }
           options = o;
+          this.model.set('options', options);
         }
-        // Make select
+      }
+      var input = this.renderInput(type, options);
+
+      var val;
+      if (state && state[this.model.id] !== undefined){
+        // Use the stored state
+        val = state[this.model.id];
+      } else if (this.model.get("value") !== undefined) {
+        // Use the default
+        val = this.model.get("value");
+      }
+
+      this.setInputValue(input, type, val);
+
+      this.model.parentNode.on('change:state', function () {
+        var state = this.model.parentNode.get('state');
+        if (!state || state[this.model.id] === undefined) {
+          return;
+        }
+        this.setInputValue(input, type, state[this.model.id]);
+      }.bind(this));
+
+      var label = $("<label>")
+        .append( input )
+        .prepend( '<span>' + this.model.get("label") + "</span> " );
+      this.$input = label;
+    },
+    renderInput: function (type, options) {
+      var input;
+      if (options) {
         input = $('<select class="input input-select">');
         for (var name in options) {
           var option = $('<option value="'+options[name]+'">'+name+'</option>')
             .data("val", options[name]);
-          if (val && options[name] === val) {
-            option.prop("selected", true);
-          }
           input.append(option);
         }
-        // Change event
-        input.change(function(event){
-          self.inputSelect(event);
-        });
-      } else if (type === "int" || type === "float" || type === "number") {
-        // Number input
-        var attributes = {};
-        if (this.model.get("min") !== undefined) {
-          attributes.min = this.model.get("min");
-        }
-        if (this.model.get("max") !== undefined) {
-          attributes.max = this.model.get("max");
-        }
-        if (type === "int") {
-          attributes.step = 1;
-        }
-        input = $('<input type="number" class="input input-number">')
-          .attr(attributes)
-          .addClass(type === "int" ? "input-int" : "input-float");
-        if (state && state[this.model.id] !== undefined){
-          // Use the stored state
-          input.val(state[this.model.id]);
-        } else if (this.model.get("value") !== undefined) {
-          // Use the default
-          input.val(this.model.get("value"));
-        }
-        // Change event
-        if (type === "int") {
-          input.change(function(event){
-            self.inputInt(event);
-          });
-        } else {
-          input.change(function(event){
-            self.inputFloat(event);
-          });
-        }
-      } else if (type === "string" || type === "all") {
-        // String input
-        input = $('<input class="input input-string">');
-        if (state && state[this.model.id] !== undefined){
-          // Use the stored state
-          input.val(state[this.model.id]);
-        } else if (this.model.get("value") !== undefined) {
-          // Use the default
-          input.val(this.model.get("value"));
-        }
-        // Change event
-        input.change(function(event){
-          self.inputString(event);
-        });
-      } else if (type === "boolean") {
-        // Checkbox boolean
-        input = $('<input type="checkbox" class="input input-boolean">');
-        if (state && state[this.model.id] !== undefined){
-          // Use the stored state
-          input.prop("checked", state[this.model.id]);
-        } else if (this.model.get("value") !== undefined) {
-          // Use the default
-          input.prop("checked", this.model.get("value"));
-        }
-        // Change event
-        input.change(function(event){
-          self.inputBoolean(event);
-        });
-      } else if (type === "bang") {
-        // Button bang
-        input = $('<button class="input input-bang">!</button>');
-        // Change event
-        input.click(function(event){
-          self.inputBang(event);
-        });
-      } 
-      if (input) {
-        var label = $("<label>")
-          .append( input )
-          .prepend( '<span>' + this.model.get("label") + "</span> " );
-        this.$input = label;
+        input.change(this.inputSelect.bind(this));
+        return input;
       }
+
+      switch (type) {
+        case 'int':
+        case 'float':
+        case 'number':
+          var attributes = {};
+          if (this.model.get("min") !== undefined) {
+            attributes.min = this.model.get("min");
+          }
+          if (this.model.get("max") !== undefined) {
+            attributes.max = this.model.get("max");
+          }
+          if (type === "int") {
+            attributes.step = 1;
+          }
+          input = $('<input type="number" class="input input-number">')
+            .attr(attributes)
+            .addClass(type === "int" ? "input-int" : "input-float");
+          if (type == 'int') {
+            input.change(this.inputInt.bind(this));
+          } else {
+            input.change(this.inputFloat.bind(this));
+          }
+          return input;
+        case 'boolean':
+          input = $('<input type="checkbox" class="input input-boolean">');
+          input.change(this.inputBoolean.bind(this));
+          return input;
+        case 'bang':
+          input = $('<button class="input input-bang">!</button>');
+          input.click(this.inputBang.bind(this));
+          return input;
+        default:
+          input = $('<input class="input input-string">');
+          input.change(this.inputString.bind(this));
+          return input;
+      }
+    },
+    setInputValue: function (input, type, value) {
+      if (!input) {
+        return;
+      }
+      if (input[0].tagName === 'SELECT') {
+        $('option', input).each(function () {
+          var selectVal = $(this).data('val');
+          $(this).prop('selected', selectVal == value);
+        });
+        return;
+      }
+      if (type === 'boolean') {
+        input.prop('checked', value);
+        return;
+      }
+      input.val(value);
     },
     inputSelect: function(e){
       var val = $(e.target).find(":selected").data("val");
@@ -8851,24 +8849,29 @@ DataflowNoflo.initialize = function(dataflow) {
           y: node.get("y")
         });
       }
-      return node.on("change:label", function(node, newName) {
-        var edge, index, oldName, _i, _len, _ref, _results;
+      node.on("change:label", function(node, newName) {
+        var oldName;
         oldName = node.nofloNode.id;
-        node.nofloNode.id = newName;
-        _ref = nofloGraph.edges;
-        _results = [];
-        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-          edge = _ref[index];
-          if ((edge.from != null) && edge.from.node === oldName) {
-            edge.from.node = newName;
+        return nofloGraph.renameNode(oldName, newName);
+      });
+      return node.on("change:state", function(port, value) {
+        var iip, metadata, _i, _len, _ref;
+        metadata = {};
+        _ref = nofloGraph.initializers;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          iip = _ref[_i];
+          if (!iip) {
+            continue;
           }
-          if ((edge.to != null) && edge.to.node === oldName) {
-            _results.push(edge.to.node = newName);
-          } else {
-            _results.push(void 0);
+          if (iip.to.node === node.nofloNode.id && iip.to.port === port) {
+            if (iip.from.data === value) {
+              return;
+            }
+            metadata = iip.metadata;
+            nofloGraph.removeInitial(node.nofloNode.id, port);
           }
         }
-        return _results;
+        return nofloGraph.addInitial(value, node.nofloNode.id, port, metadata);
       });
     });
     dataflow.on("edge:add", function(dfGraph, edge) {
@@ -8882,20 +8885,10 @@ DataflowNoflo.initialize = function(dataflow) {
       }
     });
     dataflow.on("edge:remove", function(dfGraph, edge) {
-      var index, _edge, _i, _len, _ref, _results;
+      var e;
       if (edge.nofloEdge != null) {
-        _ref = nofloGraph.edges;
-        _results = [];
-        for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
-          _edge = _ref[index];
-          if (_edge === edge.nofloEdge) {
-            nofloGraph.emit('removeEdge', edge.nofloEdge);
-            _results.push(nofloGraph.edges.splice(index, 1));
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
+        e = edge.nofloEdge;
+        return nofloGraph.removeEdge(e.from.node, edge.from.port, edge.to.node, edge.to.port);
       }
     });
     _ref = nofloGraph.nodes;
@@ -8959,10 +8952,7 @@ DataflowNoflo.initialize = function(dataflow) {
     if (node) {
       port = node.inputs.get(iip.to.port);
       if (port) {
-        node.setState(iip.to.port, iip.from.data);
-        if (port.view) {
-          return port.view.$("input").val(iip.from.data);
-        }
+        return node.setState(iip.to.port, iip.from.data);
       }
     } else {
 
