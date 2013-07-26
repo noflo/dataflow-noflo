@@ -113,6 +113,9 @@
       
           // Run the graph
           noflo.createNetwork(graph, function (network) {
+            graph.on('addInitial', function () {
+              network.sendInitials();
+            });
           });
         });
       });
