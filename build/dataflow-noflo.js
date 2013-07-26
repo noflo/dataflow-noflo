@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-26 (3:16:00 AM GMT+0200)
+/*! dataflow.js - v0.0.7 - 2013-07-26 (2:27:34 PM PDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1330,6 +1330,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 }(Dataflow) );
 
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.Model = Backbone.Model.extend({
+    
+  });
+
+  Card.Collection = Backbone.Collection.extend({
+    model: Card.Model
+  });
+
+}(Dataflow));
+
 (function(Dataflow) {
 
   var Graph = Dataflow.prototype.module("graph");
@@ -1508,7 +1522,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     fade: function () {
       this.model.nodes.each(function(node){
-        node.view.fade();
+        if (!node.view.$el.hasClass("ui-selected")){
+          node.view.fade();
+        }
       });
       this.model.edges.each(function(edge){
         edge.view.fade();
@@ -1563,10 +1579,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     events: function(){
       return {
         "click .dataflow-node-inspect": "showInspector",
-        "click":   "select",
-        "dragstart":     "dragStart",
-        "drag":          "drag",
-        "dragstop":      "dragStop"
+        "click .dataflow-node-header":  "select",
+        "dragstart": "dragStart",
+        "drag":      "drag",
+        "dragstop":  "dragStop"
         // "click .dataflow-node-delete": "removeModel",
         // "click .dataflow-node-cancel": "hideControls",
         // "click .dataflow-node-save":   "saveLabel"
@@ -1642,7 +1658,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     dragStart: function(event, ui){
       // Select this
       if (!this.$el.hasClass("ui-selected")){
-        this.select(event);
+        this.select(event, true);
       }
 
       // Make helper and save start position of all other selected
@@ -1757,33 +1773,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }, this);
       this.el.style.zIndex = topZ+1;
     },
-    select: function(event){
-      if (event) {
-        // Don't click graph
-        event.stopPropagation();
-        // Called from click
-        if (event.ctrlKey || event.metaKey) {
-          // Command key is pressed, toggle selection
-          this.$el.toggleClass("ui-selected");
-        } else {
-          // Command key isn't pressed, deselect others and select this one
-          this.model.parentGraph.view.$(".ui-selected").removeClass("ui-selected");
-          this.$el.addClass("ui-selected");
-        }
-        // Bring to top
-        this.bringToTop();
-      } else {
-        // Called from code
-        this.$el.addClass("ui-selected");
-        this.bringToTop();
+    select: function(event, deselectOthers){
+      // Don't click graph
+      event.stopPropagation();
+      // De/select
+      if (deselectOthers) {
+        this.model.parentGraph.view.$(".ui-selected").removeClass("ui-selected");
       }
+      this.$el.addClass("ui-selected");
+      this.bringToTop();
+      // Fade / highlight
+      this.model.parentGraph.view.fade();
+      this.unfade();
       // Trigger
-      if ( this.$el.hasClass("ui-selected") ) {
-        this.model.trigger("select");
-        // Fade others, highlight these
-        this.model.parentGraph.view.fade();
-        this.unfade();
-      }
+      this.model.trigger("select");
       this.model.parentGraph.trigger("selectionChanged");
     },
     fade: function(){
@@ -2710,7 +2713,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     click: function(event){
       // Don't click graph
-      // event.stopPropagation();
+      if (event) {
+        event.stopPropagation();
+      }
       // Highlight
       this.highlight();
       this.bringToTop();
@@ -2757,6 +2762,23 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   });
 
 }(Dataflow) );
+
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.View = Backbone.View.extend({
+    tagName: "div",
+    initialize: function(){
+    }
+  });
+
+  Card.CollectionView = Backbone.CollectionView.extend({
+    tagName: "div",
+    itemView: Card.View
+  }); 
+
+}(Dataflow));
 
 ( function(Dataflow) {
 
