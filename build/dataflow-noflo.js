@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-25 (8:25:04 PM PDT)
+/*! dataflow.js - v0.0.7 - 2013-07-26 (10:16:01 AM PDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1658,7 +1658,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     dragStart: function(event, ui){
       // Select this
       if (!this.$el.hasClass("ui-selected")){
-        this.select(event);
+        this.select(event, true);
       }
 
       // Make helper and save start position of all other selected
@@ -1773,15 +1773,17 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }, this);
       this.el.style.zIndex = topZ+1;
     },
-    select: function(event){
+    select: function(event, deselectOthers){
       // Don't click graph
       event.stopPropagation();
-      // Select this
+      // De/select
+      if (deselectOthers) {
+        this.model.parentGraph.view.$(".ui-selected").removeClass("ui-selected");
+      }
       this.$el.addClass("ui-selected");
       this.bringToTop();
-      // Fade others
+      // Fade / highlight
       this.model.parentGraph.view.fade();
-      // Highlight these
       this.unfade();
       // Trigger
       this.model.trigger("select");
@@ -2711,7 +2713,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     click: function(event){
       // Don't click graph
-      // event.stopPropagation();
+      event.stopPropagation();
       // Highlight
       this.highlight();
       this.bringToTop();
@@ -6895,7 +6897,7 @@ ComponentLoader = (function() {
   };
 
   ComponentLoader.prototype.load = function(name, callback) {
-    var implementation, instance,
+    var component, componentName, implementation, instance,
       _this = this;
     if (!this.components) {
       this.listComponents(function(components) {
@@ -6903,17 +6905,26 @@ ComponentLoader = (function() {
       });
       return;
     }
-    if (!this.components[name]) {
-      throw new Error("Component " + name + " not available");
-      return;
+    component = this.components[name];
+    if (!component) {
+      for (componentName in this.components) {
+        if (componentName.split('/')[1] === name) {
+          component = this.components[componentName];
+          break;
+        }
+      }
+      if (!component) {
+        throw new Error("Component " + name + " not available");
+        return;
+      }
     }
-    if (this.isGraph(this.components[name])) {
+    if (this.isGraph(component)) {
       process.nextTick(function() {
         return _this.loadGraph(name, callback);
       });
       return;
     }
-    implementation = require(this.components[name]);
+    implementation = require(component);
     instance = implementation.getComponent();
     if (name === 'Graph') {
       instance.baseDir = this.baseDir;
@@ -8653,7 +8664,6 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.subscribe = function(element) {
     var draggie;
-    console.log(this.options);
     draggie = this.draggie = new Draggabilly(element, this.options);
     draggie.on('dragStart', this.dragstart);
     draggie.on('dragMove', this.dragmove);
