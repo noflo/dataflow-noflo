@@ -8764,7 +8764,7 @@ DataflowNoflo.initialize = function(dataflow) {
   var noflo;
   noflo = require("noflo");
   DataflowNoflo.registerGraph = function(nofloGraph) {
-    var cl, dataflowGraph, edge, iip, node, sourceChanged, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
+    var dataflowGraph;
     dataflowGraph = dataflow.loadGraph({});
     dataflowGraph.nofloGraph = nofloGraph;
     nofloGraph.dataflowGraph = dataflowGraph;
@@ -8783,18 +8783,26 @@ DataflowNoflo.initialize = function(dataflow) {
       },
       contexts: ["one"]
     });
-    cl = new noflo.ComponentLoader();
-    cl.baseDir = nofloGraph.baseDir;
-    cl.listComponents(function(types) {
-      var name, _results;
-      _results = [];
-      for (name in types) {
-        _results.push(cl.load(name, function(component) {
-          return makeDataflowNodeProto(name, component);
-        }));
-      }
-      return _results;
+    return DataflowNoflo.loadComponents(nofloGraph.baseDir, function() {
+      return DataflowNoflo.loadGraph(dataflowGraph, nofloGraph);
     });
+  };
+  DataflowNoflo.loadComponents = function(baseDir, ready) {
+    var cl;
+    cl = new noflo.ComponentLoader();
+    cl.baseDir = baseDir;
+    return cl.listComponents(function(types) {
+      var name;
+      for (name in types) {
+        cl.load(name, function(component) {
+          return makeDataflowNodeProto(name, component);
+        });
+      }
+      return ready();
+    });
+  };
+  DataflowNoflo.loadGraph = function(dataflowGraph, nofloGraph) {
+    var edge, iip, node, sourceChanged, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
     dataflow.plugins.library.update({
       exclude: ["base", "noflo-base"]
     });

@@ -34,7 +34,7 @@ baseExtender = (name, component) ->
     nfi = component.inPorts[inName]
     dfi =
       id: inName
-      type: nfi.type 
+      type: nfi.type
     inputs.push dfi
   outputs = []
   for outName of component.outPorts
@@ -57,7 +57,6 @@ makeDataflowNodeProto = (name, component) ->
   newType = Dataflow::node(name)
   newType.Model = NofloBase.Model.extend( baseExtender(name, component) )
   newType.View = NofloBase.View.extend()
-
 
 # Make plugin
 DataflowNoflo = Dataflow::plugin("noflo")
@@ -86,22 +85,28 @@ DataflowNoflo.initialize = (dataflow) ->
             selected.view.showControls()
       contexts: ["one"]
     )
-    
+
+    DataflowNoflo.loadComponents nofloGraph.baseDir, ->
+      DataflowNoflo.loadGraph dataflowGraph, nofloGraph
+
+  DataflowNoflo.loadComponents = (baseDir, ready) ->
     # Plugin: library
     cl = new noflo.ComponentLoader()
-    cl.baseDir = nofloGraph.baseDir
+    cl.baseDir = baseDir
     cl.listComponents (types) ->
       for name of types
         cl.load name, (component) ->
           makeDataflowNodeProto name, component
+      do ready
 
+  DataflowNoflo.loadGraph = (dataflowGraph, nofloGraph) ->
     # Might have to wait for the load callbacks?
     dataflow.plugins.library.update exclude: ["base", "noflo-base"]
     
     # Plugin: source
     dataflow.plugins.source.listeners false
 
-    sourceChanged = (o) -> 
+    sourceChanged = (o) ->
       dataflow.plugins.source.show( JSON.stringify(o.toJSON(), null, 2) )
 
     # When df graph changes update source with nf graph
