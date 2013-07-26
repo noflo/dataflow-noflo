@@ -234,7 +234,7 @@ DataflowNoflo.initialize = (dataflow) ->
       if port
         node.setState iip.to.port, iip.from.data
         if port.view
-          port.view.$("input").val iip.from.data
+          port.view.$input.children(".input").val iip.from.data
     else
       #TODO: added IIP before node?
 
