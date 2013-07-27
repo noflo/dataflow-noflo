@@ -103,6 +103,7 @@
       // Load graph JSON
       $.getJSON('draggabilly.json', function (graphDefinition) {
         noflo.graph.loadJSON(graphDefinition, function (graph) {
+          window.graph = graph;
           // Which component to start with when loading components
           graph.baseDir = '/dataflow-noflo';
 

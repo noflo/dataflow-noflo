@@ -339,6 +339,9 @@
       "tgt": {
         "process": "SpringY",
         "port": "in"
+      },
+      "metadata": {
+        "route": 2
       }
     },
     {
@@ -349,6 +352,9 @@
       "tgt": {
         "process": "PosY",
         "port": "in"
+      },
+      "metadata": {
+        "route": 3
       }
     },
     {

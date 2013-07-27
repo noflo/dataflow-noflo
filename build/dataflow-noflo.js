@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-26 (2:27:34 PM PDT)
+/*! dataflow.js - v0.0.7 - 2013-07-26 (3:25:53 PM PDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1523,19 +1523,27 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     fade: function () {
       this.model.nodes.each(function(node){
         if (!node.view.$el.hasClass("ui-selected")){
-          node.view.fade();
+          if (node.view) {
+            node.view.fade();
+          }
         }
       });
       this.model.edges.each(function(edge){
-        edge.view.fade();
+        if (edge.view) {
+          edge.view.fade();
+        }
       });
     },
     unfade: function () {
       this.model.nodes.each(function(node){
-        node.view.unfade();
+        if (node.view) {
+          node.view.unfade();
+        }
       });
       this.model.edges.each(function(edge){
-        edge.view.unfade();
+        if (edge.view) {
+          edge.view.unfade();
+        }
       });
     }
   });
@@ -1775,7 +1783,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     select: function(event, deselectOthers){
       // Don't click graph
-      event.stopPropagation();
+      if (event) {
+        event.stopPropagation();
+      }
       // De/select
       if (deselectOthers) {
         this.model.parentGraph.view.$(".ui-selected").removeClass("ui-selected");
@@ -1798,7 +1808,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       var self = this;
       this.model.parentGraph.edges.each(function(edge){
         if (edge.source.parentNode.id === self.model.id || edge.target.parentNode.id === self.model.id) {
-          edge.view.unfade();
+          if (edge.view) {
+            edge.view.unfade();
+          }
         }
       });
     },
@@ -8884,6 +8896,10 @@ DataflowNoflo.initialize = function(dataflow) {
         oldName = node.nofloNode.id;
         return nofloGraph.renameNode(oldName, newName);
       });
+      node.on("change:x change:y", function() {
+        node.nofloNode.metadata.x = node.get('x');
+        return node.nofloNode.metadata.y = node.get('y');
+      });
       return node.on("change:state", function(port, value) {
         var iip, metadata, _i, _len, _ref;
         metadata = {};
@@ -8906,8 +8922,11 @@ DataflowNoflo.initialize = function(dataflow) {
     });
     dataflow.on("edge:add", function(dfGraph, edge) {
       if (edge.nofloEdge == null) {
-        return edge.nofloEdge = nofloGraph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
+        edge.nofloEdge = nofloGraph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
       }
+      return edge.on('change:route', function() {
+        return edge.nofloEdge.metadata.route = edge.get('route');
+      });
     });
     dataflow.on("node:remove", function(dfGraph, node) {
       if (node.nofloNode != null) {
@@ -8915,10 +8934,9 @@ DataflowNoflo.initialize = function(dataflow) {
       }
     });
     dataflow.on("edge:remove", function(dfGraph, edge) {
-      var e;
       if (edge.nofloEdge != null) {
-        e = edge.nofloEdge;
-        return nofloGraph.removeEdge(e.from.node, edge.from.port, edge.to.node, edge.to.port);
+        edge = edge.nofloEdge;
+        return nofloGraph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
       }
     });
     _ref = nofloGraph.nodes;
@@ -8959,6 +8977,9 @@ DataflowNoflo.initialize = function(dataflow) {
     var Edge, dfEdge;
     if (edge.dataflowEdge == null) {
       Edge = dataflow.module("edge");
+      if (!edge.metadata) {
+        edge.metadata = {};
+      }
       dfEdge = new Edge.Model({
         id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
         parentGraph: dataflowGraph,
@@ -8969,7 +8990,8 @@ DataflowNoflo.initialize = function(dataflow) {
         target: {
           node: edge.to.node,
           port: edge.to.port
-        }
+        },
+        route: (edge.metadata.route != null ? edge.metadata.route : 0)
       });
       dfEdge.nofloEdge = edge;
       edge.dataflowEdge = dfEdge;

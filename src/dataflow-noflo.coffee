@@ -164,6 +164,9 @@ DataflowNoflo.initialize = (dataflow) ->
       node.on "change:label", (node, newName) ->
         oldName = node.nofloNode.id
         nofloGraph.renameNode oldName, newName
+      node.on "change:x change:y", ->
+        node.nofloNode.metadata.x = node.get 'x'
+        node.nofloNode.metadata.y = node.get 'y'
       node.on "change:state", (port, value) ->
         metadata = {}
         for iip in nofloGraph.initializers
@@ -178,14 +181,17 @@ DataflowNoflo.initialize = (dataflow) ->
       unless edge.nofloEdge?
         edge.nofloEdge = nofloGraph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id
 
+      edge.on 'change:route', ->
+        edge.nofloEdge.metadata.route = edge.get 'route'
+
     dataflow.on "node:remove", (dfGraph, node) ->
       if node.nofloNode?
         nofloGraph.removeNode node.nofloNode.id
 
     dataflow.on "edge:remove", (dfGraph, edge) ->
       if edge.nofloEdge?
-        e = edge.nofloEdge
-        nofloGraph.removeEdge e.from.node, edge.from.port, edge.to.node, edge.to.port
+        edge = edge.nofloEdge
+        nofloGraph.removeEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port
 
     DataflowNoflo.addNode node, dataflowGraph for node in nofloGraph.nodes
     DataflowNoflo.addEdge edge, dataflowGraph for edge in nofloGraph.edges
@@ -215,6 +221,8 @@ DataflowNoflo.initialize = (dataflow) ->
     # Add edge
     unless edge.dataflowEdge?
       Edge = dataflow.module "edge"
+      unless edge.metadata
+        edge.metadata = {}
       dfEdge = new Edge.Model
         id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port
         parentGraph: dataflowGraph
@@ -224,6 +232,7 @@ DataflowNoflo.initialize = (dataflow) ->
         target:
           node: edge.to.node
           port: edge.to.port
+        route: (if edge.metadata.route? then edge.metadata.route else 0)
 
       # Reference each other
       dfEdge.nofloEdge = edge
