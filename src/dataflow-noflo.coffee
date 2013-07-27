@@ -94,10 +94,11 @@ DataflowNoflo.initialize = (dataflow) ->
     cl = new noflo.ComponentLoader()
     cl.baseDir = baseDir
     cl.listComponents (types) ->
+      readyAfter = _.after Object.keys(types).length, ready
       for name of types
         cl.load name, (component) ->
           makeDataflowNodeProto name, component
-      do ready
+          do readyAfter
 
   DataflowNoflo.loadGraph = (dataflowGraph, nofloGraph) ->
     # Might have to wait for the load callbacks?
