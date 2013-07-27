@@ -234,7 +234,7 @@
     {
       "src": {
         "process": "Touch",
-        "port": "moveX"
+        "port": "movex"
       },
       "tgt": {
         "process": "NewX",
@@ -314,7 +314,7 @@
     {
       "src": {
         "process": "Touch",
-        "port": "moveY"
+        "port": "movey"
       },
       "tgt": {
         "process": "NewY",
@@ -384,6 +384,48 @@
         "process": "AnchorY",
         "port": "in"
       }
+    },
+    {
+      "data": 50,
+      "tgt": {
+        "process": "SpringY",
+        "port": "stiffness"
+      }
+    },
+    {
+      "data": 20,
+      "tgt": {
+        "process": "SpringY",
+        "port": "mass"
+      }
+    },
+    {
+      "data": 2,
+      "tgt": {
+        "process": "SpringY",
+        "port": "friction"
+      }
+    },
+    {
+      "data": 20,
+      "tgt": {
+        "process": "SpringX",
+        "port": "mass"
+      }
+    },
+    {
+      "data": 2,
+      "tgt": {
+        "process": "SpringX",
+        "port": "friction"
+      }
+    },
+    {
+      "data": 60,
+      "tgt": {
+        "process": "SpringX",
+        "port": "stiffness"
+      }
     }
   ]
-} 
+}

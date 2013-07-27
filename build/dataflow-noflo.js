@@ -8786,13 +8786,25 @@ Spring = (function(_super) {
     this.speed = 0;
     this.inPorts = {
       anchor: new noflo.Port('number'),
-      "in": new noflo.Port('number')
+      "in": new noflo.Port('number'),
+      stiffness: new noflo.Port('int'),
+      mass: new noflo.Port('int'),
+      friction: new noflo.Port('int')
     };
     this.outPorts = {
       out: new noflo.Port('number')
     };
     this.inPorts.anchor.on('data', function(anchorPosition) {
       _this.anchorPosition = anchorPosition;
+    });
+    this.inPorts.stiffness.on('data', function(stiffness) {
+      _this.stiffness = stiffness;
+    });
+    this.inPorts.mass.on('data', function(mass) {
+      _this.mass = mass;
+    });
+    this.inPorts.friction.on('data', function(friction) {
+      _this.friction = friction;
     });
     this.inPorts["in"].on('data', function(massPosition) {
       _this.massPosition = massPosition;
@@ -8904,7 +8916,6 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.setOptions = function(options) {
     var key, value, _results;
-    console.log(options);
     if (typeof options !== "object") {
       throw new Error("Options is not an object");
     }
