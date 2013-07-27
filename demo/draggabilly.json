@@ -26,77 +26,77 @@
       }
     },
     "SendElement": {
-      "component": "Split",
+      "component": "core/Split",
       "metadata": {
         "x": 90,
         "y": 390
       }
     },
     "AnchorX": {
-      "component": "Split",
+      "component": "core/Split",
       "metadata": {
         "x": 750,
         "y": 40
       }
     },
     "AnchorY": {
-      "component": "Split",
+      "component": "core/Split",
       "metadata": {
         "x": 750,
         "y": 150
       }
     },
     "DragX": {
-      "component": "Gate",
+      "component": "flow/Gate",
       "metadata": {
         "x": 750,
         "y": 290
       }
     },
     "DragY": {
-      "component": "Gate",
+      "component": "flow/Gate",
       "metadata": {
         "x": 750,
         "y": 460
       }
     },
     "NewX": {
-      "component": "Kick",
+      "component": "core/Kick",
       "metadata": {
         "x": 750,
         "y": 630
       }
     },
     "SpringX": {
-      "component": "Spring",
+      "component": "physics/Spring",
       "metadata": {
         "x": 1140,
         "y": 250
       }
     },
     "NewY": {
-      "component": "Kick",
+      "component": "core/Kick",
       "metadata": {
         "x": 750,
         "y": 770
       }
     },
     "SpringY": {
-      "component": "Spring",
+      "component": "physics/Spring",
       "metadata": {
         "x": 1140,
         "y": 400
       }
     },
     "PosX": {
-      "component": "Merge",
+      "component": "core/Merge",
       "metadata": {
         "x": 1450,
         "y": 300
       }
     },
     "PosY": {
-      "component": "Merge",
+      "component": "core/Merge",
       "metadata": {
         "x": 1450,
         "y": 430
