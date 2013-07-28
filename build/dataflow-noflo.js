@@ -9560,6 +9560,7 @@ DataflowNoflo = Dataflow.prototype.plugin("noflo");
 DataflowNoflo.initialize = function(dataflow) {
   var noflo;
   noflo = require("noflo");
+  DataflowNoflo.aliases = {};
   DataflowNoflo.registerGraph = function(nofloGraph) {
     var dataflowGraph;
     dataflowGraph = dataflow.loadGraph({});
@@ -9589,10 +9590,14 @@ DataflowNoflo.initialize = function(dataflow) {
     cl = new noflo.ComponentLoader();
     cl.baseDir = baseDir;
     return cl.listComponents(function(types) {
-      var name, readyAfter, _results;
+      var name, parts, readyAfter, _results;
       readyAfter = _.after(Object.keys(types).length, ready);
       _results = [];
       for (name in types) {
+        parts = name.split('/');
+        if (parts.length === 2 && !DataflowNoflo.aliases[parts[1]]) {
+          DataflowNoflo.aliases[parts[1]] = name;
+        }
         _results.push(cl.load(name, function(component) {
           makeDataflowNodeProto(name, component);
           return readyAfter();
@@ -9728,7 +9733,11 @@ DataflowNoflo.initialize = function(dataflow) {
     if (node.dataflowNode == null) {
       type = dataflow.node(node.component);
       if (!type.Model) {
-        throw new Error("Component " + node.component + " not available");
+        if (DataflowNoflo.aliases[node.component]) {
+          type = dataflow.node(DataflowNoflo.aliases[node.component]);
+        } else {
+          throw new Error("Component " + node.component + " not available");
+        }
       }
       dfNode = new type.Model({
         id: node.id,

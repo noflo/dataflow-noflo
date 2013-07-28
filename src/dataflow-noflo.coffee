@@ -63,6 +63,7 @@ DataflowNoflo = Dataflow::plugin("noflo")
 DataflowNoflo.initialize = (dataflow) ->
 
   noflo = require("noflo")
+  DataflowNoflo.aliases = {}
   DataflowNoflo.registerGraph = (nofloGraph) ->
 
     # -
@@ -96,6 +97,9 @@ DataflowNoflo.initialize = (dataflow) ->
     cl.listComponents (types) ->
       readyAfter = _.after Object.keys(types).length, ready
       for name of types
+        parts = name.split '/'
+        if parts.length is 2 and !DataflowNoflo.aliases[parts[1]]
+          DataflowNoflo.aliases[parts[1]] = name
         cl.load name, (component) ->
           makeDataflowNodeProto name, component
           do readyAfter
@@ -205,7 +209,10 @@ DataflowNoflo.initialize = (dataflow) ->
     unless node.dataflowNode?
       type = dataflow.node(node.component)
       unless type.Model
-        throw new Error "Component #{node.component} not available"
+        if DataflowNoflo.aliases[node.component]
+          type = dataflow.node(DataflowNoflo.aliases[node.component])
+        else
+          throw new Error "Component #{node.component} not available"
       dfNode = new type.Model(
         id: node.id
         label: node.id
