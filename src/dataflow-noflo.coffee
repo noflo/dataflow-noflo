@@ -195,8 +195,8 @@ DataflowNoflo.initialize = (dataflow) ->
 
     dataflow.on "edge:remove", (dfGraph, edge) ->
       if edge.nofloEdge?
-        e = edge.nofloEdge
-        nofloGraph.removeEdge e.from.node, edge.from.port, edge.to.node, edge.to.port
+        edge = edge.nofloEdge
+        nofloGraph.removeEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port
 
     DataflowNoflo.addNode node, dataflowGraph for node in nofloGraph.nodes
     DataflowNoflo.addEdge edge, dataflowGraph for edge in nofloGraph.edges
@@ -231,6 +231,8 @@ DataflowNoflo.initialize = (dataflow) ->
     # Add edge
     unless edge.dataflowEdge?
       Edge = dataflow.module "edge"
+      unless edge.metadata
+        edge.metadata = {}
       dfEdge = new Edge.Model
         id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port
         parentGraph: dataflowGraph

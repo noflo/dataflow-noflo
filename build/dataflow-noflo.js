@@ -9705,10 +9705,9 @@ DataflowNoflo.initialize = function(dataflow) {
       }
     });
     dataflow.on("edge:remove", function(dfGraph, edge) {
-      var e;
       if (edge.nofloEdge != null) {
-        e = edge.nofloEdge;
-        return nofloGraph.removeEdge(e.from.node, edge.from.port, edge.to.node, edge.to.port);
+        edge = edge.nofloEdge;
+        return nofloGraph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
       }
     });
     _ref = nofloGraph.nodes;
@@ -9756,6 +9755,9 @@ DataflowNoflo.initialize = function(dataflow) {
     var Edge, dfEdge;
     if (edge.dataflowEdge == null) {
       Edge = dataflow.module("edge");
+      if (!edge.metadata) {
+        edge.metadata = {};
+      }
       dfEdge = new Edge.Model({
         id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
         parentGraph: dataflowGraph,
