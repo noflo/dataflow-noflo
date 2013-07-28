@@ -9217,13 +9217,16 @@ DataflowNoflo.initialize = function(dataflow) {
     cl = new noflo.ComponentLoader();
     cl.baseDir = baseDir;
     return cl.listComponents(function(types) {
-      var name;
+      var name, readyAfter, _results;
+      readyAfter = _.after(Object.keys(types).length, ready);
+      _results = [];
       for (name in types) {
-        cl.load(name, function(component) {
-          return makeDataflowNodeProto(name, component);
-        });
+        _results.push(cl.load(name, function(component) {
+          makeDataflowNodeProto(name, component);
+          return readyAfter();
+        }));
       }
-      return ready();
+      return _results;
     });
   };
   DataflowNoflo.loadGraph = function(dataflowGraph, nofloGraph) {
