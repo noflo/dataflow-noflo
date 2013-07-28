@@ -14,7 +14,10 @@
   "dependencies": {
     "meemoo/dataflow": "*",
     "noflo/noflo": "*",
+    "noflo/noflo-core": "*",
+    "noflo/noflo-flow": "*",
     "noflo/noflo-dom": "*",
+    "noflo/noflo-physics": "*",
     "d4tocchini/noflo-draggabilly": "*"
   },
   "scripts": [

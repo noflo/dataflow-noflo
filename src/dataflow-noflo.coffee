@@ -203,6 +203,8 @@ DataflowNoflo.initialize = (dataflow) ->
   DataflowNoflo.addNode = (node, dataflowGraph) ->
     unless node.dataflowNode?
       type = dataflow.node(node.component)
+      unless type.Model
+        throw new Error "Component #{node.component} not available"
       dfNode = new type.Model(
         id: node.id
         label: node.id

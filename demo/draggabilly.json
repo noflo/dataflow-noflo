@@ -26,77 +26,77 @@
       }
     },
     "SendElement": {
-      "component": "Split",
+      "component": "core/Split",
       "metadata": {
         "x": 90,
         "y": 390
       }
     },
     "AnchorX": {
-      "component": "Split",
+      "component": "core/Split",
       "metadata": {
         "x": 750,
         "y": 40
       }
     },
     "AnchorY": {
-      "component": "Split",
+      "component": "core/Split",
       "metadata": {
         "x": 750,
         "y": 150
       }
     },
     "DragX": {
-      "component": "Gate",
+      "component": "flow/Gate",
       "metadata": {
         "x": 750,
         "y": 290
       }
     },
     "DragY": {
-      "component": "Gate",
+      "component": "flow/Gate",
       "metadata": {
         "x": 750,
         "y": 460
       }
     },
     "NewX": {
-      "component": "Kick",
+      "component": "core/Kick",
       "metadata": {
         "x": 750,
         "y": 630
       }
     },
     "SpringX": {
-      "component": "Spring",
+      "component": "physics/Spring",
       "metadata": {
         "x": 1140,
         "y": 250
       }
     },
     "NewY": {
-      "component": "Kick",
+      "component": "core/Kick",
       "metadata": {
         "x": 750,
         "y": 770
       }
     },
     "SpringY": {
-      "component": "Spring",
+      "component": "physics/Spring",
       "metadata": {
         "x": 1140,
         "y": 400
       }
     },
     "PosX": {
-      "component": "Merge",
+      "component": "core/Merge",
       "metadata": {
         "x": 1450,
         "y": 300
       }
     },
     "PosY": {
-      "component": "Merge",
+      "component": "core/Merge",
       "metadata": {
         "x": 1450,
         "y": 430
@@ -119,6 +119,9 @@
       "tgt": {
         "process": "Touch",
         "port": "container"
+      },
+      "metadata": {
+        "route": 0
       }
     },
     {
@@ -129,6 +132,9 @@
       "tgt": {
         "process": "SendElement",
         "port": "in"
+      },
+      "metadata": {
+        "route": 7
       }
     },
     {
@@ -139,6 +145,9 @@
       "tgt": {
         "process": "Touch",
         "port": "element"
+      },
+      "metadata": {
+        "route": 7
       }
     },
     {
@@ -149,6 +158,9 @@
       "tgt": {
         "process": "Move",
         "port": "element"
+      },
+      "metadata": {
+        "route": 7
       }
     },
     {
@@ -159,6 +171,9 @@
       "tgt": {
         "process": "PosX",
         "port": "in"
+      },
+      "metadata": {
+        "route": 2
       }
     },
     {
@@ -169,6 +184,9 @@
       "tgt": {
         "process": "Move",
         "port": "x"
+      },
+      "metadata": {
+        "route": 1
       }
     },
     {
@@ -179,6 +197,9 @@
       "tgt": {
         "process": "PosY",
         "port": "in"
+      },
+      "metadata": {
+        "route": 10
       }
     },
     {
@@ -189,6 +210,9 @@
       "tgt": {
         "process": "Move",
         "port": "y"
+      },
+      "metadata": {
+        "route": 11
       }
     },
     {
@@ -219,6 +243,9 @@
       "tgt": {
         "process": "PosX",
         "port": "in"
+      },
+      "metadata": {
+        "route": 1
       }
     },
     {
@@ -229,16 +256,22 @@
       "tgt": {
         "process": "SpringX",
         "port": "anchor"
+      },
+      "metadata": {
+        "route": 2
       }
     },
     {
       "src": {
         "process": "Touch",
-        "port": "moveX"
+        "port": "movex"
       },
       "tgt": {
         "process": "NewX",
         "port": "data"
+      },
+      "metadata": {
+        "route": 1
       }
     },
     {
@@ -259,6 +292,9 @@
       "tgt": {
         "process": "SpringX",
         "port": "in"
+      },
+      "metadata": {
+        "route": 1
       }
     },
     {
@@ -269,6 +305,9 @@
       "tgt": {
         "process": "PosX",
         "port": "in"
+      },
+      "metadata": {
+        "route": 1
       }
     },
     {
@@ -299,6 +338,9 @@
       "tgt": {
         "process": "PosY",
         "port": "in"
+      },
+      "metadata": {
+        "route": 11
       }
     },
     {
@@ -309,16 +351,22 @@
       "tgt": {
         "process": "SpringY",
         "port": "anchor"
+      },
+      "metadata": {
+        "route": 10
       }
     },
     {
       "src": {
         "process": "Touch",
-        "port": "moveY"
+        "port": "movey"
       },
       "tgt": {
         "process": "NewY",
         "port": "data"
+      },
+      "metadata": {
+        "route": 11
       }
     },
     {
@@ -341,7 +389,7 @@
         "port": "in"
       },
       "metadata": {
-        "route": 2
+        "route": 11
       }
     },
     {
@@ -354,7 +402,7 @@
         "port": "in"
       },
       "metadata": {
-        "route": 3
+        "route": 11
       }
     },
     {
@@ -384,6 +432,48 @@
         "process": "AnchorY",
         "port": "in"
       }
+    },
+    {
+      "data": 50,
+      "tgt": {
+        "process": "SpringY",
+        "port": "stiffness"
+      }
+    },
+    {
+      "data": 20,
+      "tgt": {
+        "process": "SpringY",
+        "port": "mass"
+      }
+    },
+    {
+      "data": 2,
+      "tgt": {
+        "process": "SpringY",
+        "port": "friction"
+      }
+    },
+    {
+      "data": 20,
+      "tgt": {
+        "process": "SpringX",
+        "port": "mass"
+      }
+    },
+    {
+      "data": 2,
+      "tgt": {
+        "process": "SpringX",
+        "port": "friction"
+      }
+    },
+    {
+      "data": 60,
+      "tgt": {
+        "process": "SpringX",
+        "port": "stiffness"
+      }
     }
   ]
-} 
+}
