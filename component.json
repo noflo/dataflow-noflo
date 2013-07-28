@@ -16,6 +16,8 @@
     "noflo/noflo": "*",
     "noflo/noflo-core": "*",
     "noflo/noflo-flow": "*",
+    "noflo/noflo-objects": "*",
+    "noflo/noflo-strings": "*",
     "noflo/noflo-dom": "*",
     "noflo/noflo-physics": "*",
     "d4tocchini/noflo-draggabilly": "*"
@@ -25,6 +27,12 @@
   ],
   "main": "src/dataflow-noflo.js",
   "json": [
-    "component.json"
-  ]
+    "component.json",
+    "graphs/Button.json"
+  ],
+  "noflo": {
+    "graphs": {
+      "Button": "graphs/Button.json"
+    }
+  }
 }
