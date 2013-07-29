@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-29 (4:52:57 AM GMT+0200)
+/*! dataflow.js - v0.0.7 - 2013-07-28 (11:31:28 PM PDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1332,6 +1332,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 }(Dataflow) );
 
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.Model = Backbone.Model.extend({
+    
+  });
+
+  Card.Collection = Backbone.Collection.extend({
+    model: Card.Model
+  });
+
+}(Dataflow));
+
 (function(Dataflow) {
 
   var Graph = Dataflow.prototype.module("graph");
@@ -1339,6 +1353,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   // Dependencies
   var Node = Dataflow.prototype.module("node");
   var Edge = Dataflow.prototype.module("edge");
+
+  var minZoom = 0.25;
+  var maxZoom = 2.5;
  
   var template = 
     '<div class="dataflow-edges">'+
@@ -1398,8 +1415,11 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         transformOrigin: "left top"
       });
 
+      this.pageX = this.$el.position();
+
       // Handle zooming and scrolling
       this.state = this.model.dataflow.get('state');
+
       this.bindInteraction();
     },
     dragStart: function (event, ui) {
@@ -1455,7 +1475,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         });
       });
       Hammer(this.el).on('transform', function (event) {
-        scale = Math.max(0.5/currentZoom, Math.min(event.gesture.scale, 3/currentZoom));
+        scale = Math.max(minZoom/currentZoom, Math.min(event.gesture.scale, maxZoom/currentZoom));
         deltaX = (event.gesture.center.pageX - startX) / currentZoom;
         deltaY = (event.gesture.center.pageY - startY) / currentZoom;
         self.$el.css({
@@ -1471,7 +1491,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         });
         // Zoom
         var zoom = currentZoom * scale;
-        zoom = Math.max(0.5, Math.min(zoom, 3));
+        zoom = Math.max(minZoom, Math.min(zoom, maxZoom));
         state.set('zoom', zoom);
         // var scaleD = scale - currentZoom;
         var width = self.$el.width();
@@ -1492,15 +1512,45 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
 
       var onZoom = function () {
+        // var zoom = state.get('zoom');
+        // self.el.style.zoom = self.state.get('zoom');
+        // var lastClass = self.zoomClass;
+        // self.zoomClass = Math.floor(zoom * 100 * 4) / 4;
+        // self.$el
+        //   .removeClass(lastClass)
+        //   .addClass(self.zoomClass);
         self.el.style.zoom = state.get('zoom');
-        // self.el.scrollTop = state.get('scrollY');
-        // self.el.scrollLeft = state.get('scrollX');
       };
+
       state.on('change:zoom', onZoom);
 
       // Initial zoom state from localStorage
       if (state.get('zoom') !== 1) {
         onZoom();
+      }
+    },
+    // zoomClass: 1,
+    zoomIn: function () {
+      var currentZoom = this.state.get('zoom');
+      var zoom = currentZoom * 0.9;
+      zoom = Math.max(minZoom, zoom); 
+      if (zoom !== currentZoom) {
+        this.state.set('zoom', zoom);
+      }
+    },
+    zoomOut: function () {
+      var currentZoom = this.state.get('zoom');
+      var zoom = currentZoom * 1.1;
+      zoom = Math.min(maxZoom, zoom); 
+      if (zoom !== currentZoom) {
+        this.state.set('zoom', zoom);
+      }
+    },
+    zoomCenter: function () {
+      var currentZoom = this.state.get('zoom');
+      var zoom = 1;
+      if (zoom !== currentZoom) {
+        this.state.set('zoom', 1);
       }
     },
     bindScroll: function (state) {
@@ -2836,8 +2886,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
 
       // Fade all and highlight related
-      // this.model.parentGraph.view.fade();
-      // this.unfade();
+      this.model.parentGraph.view.fade();
+      this.unfade();
       // this.model.source.parentNode.view.unfade();
       // this.model.target.parentNode.view.unfade();
 
@@ -2870,6 +2920,23 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 }(Dataflow) );
 
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.View = Backbone.View.extend({
+    tagName: "div",
+    initialize: function(){
+    }
+  });
+
+  Card.CollectionView = Backbone.CollectionView.extend({
+    tagName: "div",
+    itemView: Card.View
+  }); 
+
+}(Dataflow));
+
 ( function(Dataflow) {
 
   var Edit = Dataflow.prototype.plugin("edit");
@@ -2898,9 +2965,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     //
 
     function selectAll(){
-      dataflow.currentGraph.view.$(".node").addClass("ui-selected");
+      dataflow.currentGraph.view.$(".dataflow-node").addClass("ui-selected");
     }
     buttons.children(".selectall").click(selectAll);
+    Edit.selectAll = selectAll;
 
     //
     // X
@@ -2923,6 +2991,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
     }
     buttons.children(".cut").click(cut);
+    Edit.cut = cut;
 
     //
     // C
@@ -2954,6 +3023,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
     }
     buttons.children(".copy").click(copy);
+    Edit.copy = copy;
 
     //
     // V
@@ -2962,7 +3032,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     function paste(){
       if (copied && copied.nodes.length > 0) {
         // Deselect all
-        dataflow.currentGraph.view.$(".node").removeClass("ui-selected");
+        dataflow.currentGraph.view.$(".dataflow-node").removeClass("ui-selected");
         // Add nodes
         _.each(copied.nodes, function(node){
           // Offset pasted
@@ -3007,6 +3077,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
     }
     buttons.children(".paste").click(paste);
+    Edit.paste = paste;
 
 
 
@@ -3353,6 +3424,82 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
     };
     Inspector.listeners(true);
+
+  };
+
+}(Dataflow) );
+
+( function(Dataflow) {
+
+  // Load after other plugins
+  // TODO: track which widget has focus if multiple in page
+ 
+  var KeyBinding = Dataflow.prototype.plugin("keybinding");
+  var Edit = Dataflow.prototype.plugin("edit");
+
+  KeyBinding.initialize = function(dataflow){
+
+    function zoomIn() {
+      if (dataflow && dataflow.currentGraph && dataflow.currentGraph.view) {
+        dataflow.currentGraph.view.zoomIn();
+      }
+    }
+
+    function zoomOut() {
+      if (dataflow && dataflow.currentGraph && dataflow.currentGraph.view) {
+        dataflow.currentGraph.view.zoomOut();
+      }
+    }
+
+    function zoomCenter() {
+      if (dataflow && dataflow.currentGraph && dataflow.currentGraph.view) {
+        dataflow.currentGraph.view.zoomCenter();
+      }
+    }
+
+    function keyDown(event) {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.which) {
+          case 189: // -
+            event.preventDefault();
+            zoomIn();
+            break;
+          case 187: // =
+            event.preventDefault();
+            zoomOut();
+            break;
+          case 48:
+            event.preventDefault();
+            zoomCenter();
+            break;
+          case 65: // a
+            Edit.selectAll();
+            break;
+          case 88: // x
+            Edit.cut();
+            break;
+          case 67: // c
+            Edit.copy();
+            break;
+          case 86: // v
+            Edit.paste();
+            break;
+          case 90: // z
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    KeyBinding.listeners = function(boo){
+      if (boo) {
+        $(document).on('keydown', keyDown);
+      } else {
+        $(document).off('keydown', keyDown);
+      }
+    };
+    KeyBinding.listeners(true);
 
   };
 
