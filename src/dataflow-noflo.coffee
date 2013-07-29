@@ -13,6 +13,8 @@ NofloBase.Model = Base.Model.extend(
   initialize: ->
     Base.Model::initialize.call this
 
+  isSubgraph: -> false
+
   unload: ->
     # Stop any processes that need to be stopped
 
@@ -27,6 +29,36 @@ NofloBase.Model = Base.Model.extend(
 NofloBase.View = Base.View.extend
   initialize: (options) ->
     Base.View::initialize.call this, options
+
+Subgraph = Dataflow::node("dataflow-subgraph")
+NofloSubgraph = Dataflow::node("noflo-subgraph")
+
+NofloSubgraph.Model = Subgraph.Model.extend(
+  defaults: ->
+    defaults = Subgraph.Model::defaults.call(this)
+    defaults.type = "noflo-subgraph"
+    graph = {}
+    defaults
+
+  initialize: ->
+    Base.Model::initialize.call this
+
+  isSubgraph: -> true
+
+  unload: ->
+    # Stop any processes that need to be stopped
+
+  toJSON: ->
+    json = Subgraph.Model::toJSON.call(this)
+    json
+
+  inputs: []
+  outputs: []
+)
+
+NofloSubgraph.View = Subgraph.View.extend
+  initialize: (options) ->
+    Subgraph.View::initialize.call this, options
 
 baseExtender = (name, component) ->
   inputs = []
@@ -47,15 +79,23 @@ baseExtender = (name, component) ->
     defaults: ->
       defaults = NofloBase.Model::defaults.call(this)
       defaults.type = name
+      defaults.graph = {}
       defaults
     inputs: inputs
     outputs: outputs
+    nofloComponent: component
 
   extender
 
-makeDataflowNodeProto = (name, component) ->
+makeDataflowNodeProto = (name, component, ready) ->
+  if component.isSubgraph()
+    newType = Dataflow::node(name)
+    newType.Model = NofloSubgraph.Model.extend baseExtender name, component
+    newType.View = NofloSubgraph.View.extend()
+    return
+    
   newType = Dataflow::node(name)
-  newType.Model = NofloBase.Model.extend( baseExtender(name, component) )
+  newType.Model = NofloBase.Model.extend baseExtender name, component
   newType.View = NofloBase.View.extend()
 
 # Make plugin
@@ -64,7 +104,7 @@ DataflowNoflo.initialize = (dataflow) ->
 
   noflo = require("noflo")
   DataflowNoflo.aliases = {}
-  DataflowNoflo.registerGraph = (nofloGraph) ->
+  DataflowNoflo.registerGraph = (nofloGraph, callback) ->
 
     # -
     # Sync Dataflow and Noflo graphs
@@ -88,7 +128,8 @@ DataflowNoflo.initialize = (dataflow) ->
     )
 
     DataflowNoflo.loadComponents nofloGraph.baseDir, ->
-      DataflowNoflo.loadGraph dataflowGraph, nofloGraph
+      dfGraph = DataflowNoflo.loadGraph dataflowGraph, nofloGraph
+      callback dfGraph if callback
 
   DataflowNoflo.loadComponents = (baseDir, ready) ->
     # Plugin: library
@@ -198,14 +239,16 @@ DataflowNoflo.initialize = (dataflow) ->
         edge = edge.nofloEdge
         nofloGraph.removeEdge edge.from.node, edge.from.port, edge.to.node, edge.to.port
 
-    DataflowNoflo.addNode node, dataflowGraph for node in nofloGraph.nodes
-    DataflowNoflo.addEdge edge, dataflowGraph for edge in nofloGraph.edges
-    DataflowNoflo.addInitial iip, dataflowGraph for iip in nofloGraph.initializers
+    nodesReady = _.after nofloGraph.nodes.length, ->
+      DataflowNoflo.addEdge edge, dataflowGraph for edge in nofloGraph.edges
+      DataflowNoflo.addInitial iip, dataflowGraph for iip in nofloGraph.initializers
+    DataflowNoflo.addNode node, dataflowGraph, nodesReady for node in nofloGraph.nodes
 
     # return
     dataflowGraph
 
-  DataflowNoflo.addNode = (node, dataflowGraph) ->
+  DataflowNoflo.addNode = (node, dataflowGraph, ready) ->
+    return unless node
     unless node.dataflowNode?
       type = dataflow.node(node.component)
       unless type.Model
@@ -213,21 +256,31 @@ DataflowNoflo.initialize = (dataflow) ->
           type = dataflow.node(DataflowNoflo.aliases[node.component])
         else
           throw new Error "Component #{node.component} not available"
-      dfNode = new type.Model(
+      dfNode = new type.Model
         id: node.id
         label: node.id
         x: ( if node.metadata.x? then node.metadata.x else 300 )
         y: ( if node.metadata.y? then node.metadata.y else 300 )
         parentGraph: dataflowGraph
-      )
+
       # Reference each other
       dfNode.nofloNode = node
       node.dataflowNode = dfNode
+      if dfNode.isSubgraph()
+        DataflowNoflo.registerGraph dfNode.nofloComponent.network.graph, (dfGraph) ->
+          dfNode.set 'graph', dfGraph
+          console.log "ADD GRAPH"
+          dataflowGraph.nodes.add dfNode
+          do ready if ready
+        return
+
       # Add to graph
       dataflowGraph.nodes.add dfNode
+    do ready if ready
     node.dataflowNode
 
   DataflowNoflo.addEdge = (edge, dataflowGraph) ->
+    return unless edge
     # Add edge
     unless edge.dataflowEdge?
       Edge = dataflow.module "edge"
