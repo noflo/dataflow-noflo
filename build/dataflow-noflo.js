@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-29 (12:35:08 AM PDT)
+/*! dataflow.js - v0.0.7 - 2013-07-29 (1:24:45 AM PDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1264,7 +1264,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         // Set up listener
         sourceNode.on("send:"+this.source.id, this.send, this);
 
-        this.bringToTop();
+        // this.bringToTop();
 
         // Selection event
         this.on("select", this.select, this);
@@ -1292,24 +1292,24 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         route: this.get("route")
       };
     },
-    bringToTop: function(){
-      var topZ = 0;
-      this.parentGraph.edges.each(function(edge){
-        if (edge !== this) {
-          var thisZ = edge.get("z");
-          if (thisZ > topZ) {
-            topZ = thisZ;
-          }
-          if (edge.view){
-            edge.view.unhighlight();
-          }
-        }
-      }, this);
-      this.set("z", topZ+1);
-      if (this.collection) {
-        this.collection.sort();
-      }
-    },
+    // bringToTop: function(){
+    //   var topZ = 0;
+    //   this.parentGraph.edges.each(function(edge){
+    //     if (edge !== this) {
+    //       var thisZ = edge.get("z");
+    //       if (thisZ > topZ) {
+    //         topZ = thisZ;
+    //       }
+    //       if (edge.view){
+    //         edge.view.unhighlight();
+    //       }
+    //     }
+    //   }, this);
+    //   this.set("z", topZ+1);
+    //   if (this.collection) {
+    //     this.collection.sort();
+    //   }
+    // },
     remove: function(){
       this.source.disconnect(this);
       this.target.disconnect(this);
@@ -2240,7 +2240,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           }
         }, this);
         if (topEdge && topEdge.view) {
-          topEdge.view.click();
+          topEdge.view.bringToTop();
         }
       }
       return topEdge;
@@ -2365,8 +2365,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     bringToTop: function (edge) {
       var route = edge.get("route");
       if (route !== undefined) {
-        this.$(".dataflow-port-hole").removeClass("route"+this.topRoute);
-        this.$(".dataflow-port-hole").addClass("route"+route);
+        this.$(".dataflow-port-hole, .dataflow-port-plug").removeClass("route"+this.topRoute);
+        this.$(".dataflow-port-hole, .dataflow-port-plug").addClass("route"+route);
         this.topRoute = route;
       }
     }
@@ -2507,7 +2507,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           }
         }, this);
         if (topEdge && topEdge.view) {
-          topEdge.view.click();
+          topEdge.view.bringToTop();
         }
       }
       return topEdge;
@@ -2878,6 +2878,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.highlight();
       this.bringToTop();
       this.model.trigger("select");
+      // Fade all and highlight related
+      this.model.parentGraph.view.fade();
+      this.unfade();
       this.showInspector();
     },
     showInspector: function(){
@@ -2891,15 +2894,12 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       $choose.children(".route"+this.model.get("route")).addClass("active");
     },
     bringToTop: function(){
-      this.model.bringToTop();
+      // this.model.bringToTop();
       var parent = this.el.parentNode;
       if (parent) {
         parent.appendChild(this.el);
       }
 
-      // Fade all and highlight related
-      this.model.parentGraph.view.fade();
-      this.unfade();
       // this.model.source.parentNode.view.unfade();
       // this.model.target.parentNode.view.unfade();
 
