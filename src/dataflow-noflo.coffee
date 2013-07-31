@@ -181,6 +181,14 @@ DataflowNoflo.initialize = (dataflow) ->
             metadata = iip.metadata
             nofloGraph.removeInitial node.nofloNode.id, port
         nofloGraph.addInitial value, node.nofloNode.id, port, metadata
+      node.on "bang", (port) ->
+        metadata = {}
+        for iip in nofloGraph.initializers
+          continue unless iip
+          if iip.to.node is node.nofloNode.id and iip.to.port is port
+            metadata = iip.metadata
+            nofloGraph.removeInitial node.nofloNode.id, port
+        nofloGraph.addInitial true, node.nofloNode.id, port, metadata
 
     dataflow.on "edge:add", (dfGraph, edge) ->
       unless edge.nofloEdge?

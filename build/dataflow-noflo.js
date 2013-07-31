@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-07-29 (2:16:32 PM PDT)
+/*! dataflow.js - v0.0.7 - 2013-08-01 (12:28:04 AM GMT+0200)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1084,6 +1084,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       if (this["input"+name]){
         this["input"+name]();
       }
+      this.trigger("bang", name);
     },
     send: function (name, value) {
       // This isn't the only way that values are sent, see github.com/forresto/dataflow-webaudio
@@ -1331,20 +1332,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   });
 
 }(Dataflow) );
-
-(function(Dataflow){
-
-  var Card = Dataflow.prototype.module("card");
-
-  Card.Model = Backbone.Model.extend({
-    
-  });
-
-  Card.Collection = Backbone.Collection.extend({
-    model: Card.Model
-  });
-
-}(Dataflow));
 
 (function(Dataflow) {
 
@@ -2933,23 +2920,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   });
 
 }(Dataflow) );
-
-(function(Dataflow){
-
-  var Card = Dataflow.prototype.module("card");
-
-  Card.View = Backbone.View.extend({
-    tagName: "div",
-    initialize: function(){
-    }
-  });
-
-  Card.CollectionView = Backbone.CollectionView.extend({
-    tagName: "div",
-    itemView: Card.View
-  }); 
-
-}(Dataflow));
 
 ( function(Dataflow) {
 
@@ -8743,8 +8713,57 @@ exports.getComponent = function() {
 };
 
 });
+require.register("noflo-noflo-core/components/RunInterval.js", function(exports, require, module){
+var RunInterval, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+RunInterval = (function(_super) {
+  __extends(RunInterval, _super);
+
+  RunInterval.prototype.description = 'Send a packet at the given interval';
+
+  function RunInterval() {
+    var _this = this;
+    this.interval = null;
+    this.inPorts = {
+      interval: new noflo.Port('number'),
+      stop: new noflo.Port('bang')
+    };
+    this.outPorts = {
+      out: new noflo.Port('bang')
+    };
+    this.inPorts.interval.on('data', function(interval) {
+      if (_this.interval) {
+        clearInterval(_this.interval);
+      }
+      _this.outPorts.out.connect();
+      return _this.interval = setInterval(function() {
+        return _this.outPorts.out.send(true);
+      }, interval);
+    });
+    this.inPorts.stop.on('data', function() {
+      if (!_this.interval) {
+        return;
+      }
+      clearInterval(_this.interval);
+      return _this.outPorts.out.disconnect();
+    });
+  }
+
+  return RunInterval;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new RunInterval;
+};
+
+});
 require.register("noflo-noflo-core/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo-core","description":"NoFlo Essentials","repo":"noflo/noflo-core","version":"0.1.0","author":{"name":"Henri Bergius","email":"henri.bergius@iki.fi"},"contributors":[{"name":"Kenneth Kan","email":"kenhkan@gmail.com"},{"name":"Ryan Shaw","email":"ryanshaw@unc.edu"}],"keywords":[],"dependencies":{"noflo/noflo":"*","component/underscore":"*"},"scripts":["components/Callback.js","components/Drop.js","components/Group.js","components/Kick.js","components/Merge.js","components/Output.js","components/Repeat.js","components/RepeatAsync.js","components/Split.js","index.js"],"json":["component.json"],"noflo":{"components":{"Callback":"components/Callback.js","Drop":"components/Drop.js","Group":"components/Group.js","Kick":"components/Kick.js","Merge":"components/Merge.js","Output":"components/Output.js","Repeat":"components/Repeat.js","RepeatAsync":"components/RepeatAsync.js","Split":"components/Split.js"}}}');
+module.exports = JSON.parse('{"name":"noflo-core","description":"NoFlo Essentials","repo":"noflo/noflo-core","version":"0.1.0","author":{"name":"Henri Bergius","email":"henri.bergius@iki.fi"},"contributors":[{"name":"Kenneth Kan","email":"kenhkan@gmail.com"},{"name":"Ryan Shaw","email":"ryanshaw@unc.edu"}],"keywords":[],"dependencies":{"noflo/noflo":"*","component/underscore":"*"},"scripts":["components/Callback.js","components/Drop.js","components/Group.js","components/Kick.js","components/Merge.js","components/Output.js","components/Repeat.js","components/RepeatAsync.js","components/Split.js","components/RunInterval.js","index.js"],"json":["component.json"],"noflo":{"components":{"Callback":"components/Callback.js","Drop":"components/Drop.js","Group":"components/Group.js","Kick":"components/Kick.js","Merge":"components/Merge.js","Output":"components/Output.js","Repeat":"components/Repeat.js","RepeatAsync":"components/RepeatAsync.js","Split":"components/Split.js","RunInterval":"components/RunInterval.js"}}}');
 });
 require.register("noflo-noflo-flow/index.js", function(exports, require, module){
 /*
@@ -11672,7 +11691,7 @@ DataflowNoflo.initialize = function(dataflow) {
         node.nofloNode.metadata.x = node.get('x');
         return node.nofloNode.metadata.y = node.get('y');
       });
-      return node.on("change:state", function(port, value) {
+      node.on("change:state", function(port, value) {
         var iip, metadata, _i, _len, _ref;
         metadata = {};
         _ref = nofloGraph.initializers;
@@ -11690,6 +11709,22 @@ DataflowNoflo.initialize = function(dataflow) {
           }
         }
         return nofloGraph.addInitial(value, node.nofloNode.id, port, metadata);
+      });
+      return node.on("bang", function(port) {
+        var iip, metadata, _i, _len, _ref;
+        metadata = {};
+        _ref = nofloGraph.initializers;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          iip = _ref[_i];
+          if (!iip) {
+            continue;
+          }
+          if (iip.to.node === node.nofloNode.id && iip.to.port === port) {
+            metadata = iip.metadata;
+            nofloGraph.removeInitial(node.nofloNode.id, port);
+          }
+        }
+        return nofloGraph.addInitial(true, node.nofloNode.id, port, metadata);
       });
     });
     dataflow.on("edge:add", function(dfGraph, edge) {
@@ -11836,6 +11871,7 @@ require.alias("noflo-noflo-core/components/Output.js", "dataflow-noflo/deps/nofl
 require.alias("noflo-noflo-core/components/Repeat.js", "dataflow-noflo/deps/noflo-core/components/Repeat.js");
 require.alias("noflo-noflo-core/components/RepeatAsync.js", "dataflow-noflo/deps/noflo-core/components/RepeatAsync.js");
 require.alias("noflo-noflo-core/components/Split.js", "dataflow-noflo/deps/noflo-core/components/Split.js");
+require.alias("noflo-noflo-core/components/RunInterval.js", "dataflow-noflo/deps/noflo-core/components/RunInterval.js");
 require.alias("noflo-noflo-core/index.js", "dataflow-noflo/deps/noflo-core/index.js");
 require.alias("noflo-noflo-core/index.js", "noflo-core/index.js");
 require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-core/deps/noflo/src/lib/Graph.js");
