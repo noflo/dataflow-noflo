@@ -3735,11 +3735,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 });
 require.register("component-indexof/index.js", function(exports, require, module){
-
-var indexOf = [].indexOf;
-
 module.exports = function(arr, obj){
-  if (indexOf) return arr.indexOf(obj);
+  if (arr.indexOf) return arr.indexOf(obj);
   for (var i = 0; i < arr.length; ++i) {
     if (arr[i] === obj) return i;
   }
@@ -6623,7 +6620,7 @@ exports.loadFile = function(file, success) {
       exports.loadJSON(definition, success);
     } catch (_error) {
       e = _error;
-      throw new Error("Failed to load graph " + file);
+      throw new Error("Failed to load graph " + file + ": " + e.message);
     }
     return;
   }
@@ -8174,7 +8171,7 @@ exports.getComponent = function() {
 
 });
 require.register("noflo-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo","description":"Flow-Based Programming environment for JavaScript","keywords":["fbp","workflow","flow"],"repo":"noflo/noflo","version":"0.3.3","dependencies":{"component/emitter":"*","component/underscore":"*","noflo/fbp":"*"},"development":{},"license":"MIT","main":"src/lib/NoFlo.js","scripts":["src/lib/Graph.js","src/lib/InternalSocket.js","src/lib/Port.js","src/lib/ArrayPort.js","src/lib/Component.js","src/lib/AsyncComponent.js","src/lib/LoggingComponent.js","src/lib/ComponentLoader.js","src/lib/NoFlo.js","src/lib/Network.js","src/components/Graph.js"],"json":["component.json"],"noflo":{"components":{"Graph":"src/components/Graph.js"}}}');
+module.exports = JSON.parse('{"name":"noflo","description":"Flow-Based Programming environment for JavaScript","keywords":["fbp","workflow","flow"],"repo":"noflo/noflo","version":"0.4.0","dependencies":{"component/emitter":"*","component/underscore":"*","noflo/fbp":"*"},"development":{},"license":"MIT","main":"src/lib/NoFlo.js","scripts":["src/lib/Graph.js","src/lib/InternalSocket.js","src/lib/Port.js","src/lib/ArrayPort.js","src/lib/Component.js","src/lib/AsyncComponent.js","src/lib/LoggingComponent.js","src/lib/ComponentLoader.js","src/lib/NoFlo.js","src/lib/Network.js","src/components/Graph.js"],"json":["component.json"],"noflo":{"components":{"Graph":"src/components/Graph.js"}}}');
 });
 require.register("noflo-noflo-core/index.js", function(exports, require, module){
 /*
@@ -10473,7 +10470,7 @@ CreateDate = (function(_super) {
       } else {
         date = new Date(data);
       }
-      _this.outPorts.out.send(date.toJSON());
+      _this.outPorts.out.send(date);
       return _this.outPorts.out.disconnect();
     });
   }
@@ -10588,8 +10585,64 @@ exports.getComponent = function() {
 };
 
 });
+require.register("noflo-noflo-objects/components/CallMethod.js", function(exports, require, module){
+var CallMethod, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require("noflo");
+
+CallMethod = (function(_super) {
+  __extends(CallMethod, _super);
+
+  CallMethod.prototype.description = "call a method on an object";
+
+  function CallMethod() {
+    var _this = this;
+    this.method = null;
+    this.inPorts = {
+      "in": new noflo.Port('object'),
+      method: new noflo.Port('string')
+    };
+    this.outPorts = {
+      out: new noflo.Port('all'),
+      error: new noflo.Port('string')
+    };
+    this.inPorts["in"].on("data", function(data) {
+      var msg;
+      if (!_this.method) {
+        return;
+      }
+      if (!data[_this.method]) {
+        msg = "Method '" + _this.method + "' not available";
+        if (_this.outPorts.error.isAttached()) {
+          _this.outPorts.error.send(msg);
+          _this.outPorts.error.disconnect();
+          return;
+        }
+        throw new Error(msg);
+      }
+      return _this.outPorts.out.send(data[_this.method].call(data));
+    });
+    this.inPorts["in"].on('disconnect', function() {
+      return _this.outPorts.out.disconnect();
+    });
+    this.inPorts.method.on("data", function(data) {
+      return _this.method = data;
+    });
+  }
+
+  return CallMethod;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new CallMethod;
+};
+
+});
 require.register("noflo-noflo-objects/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo-objects","description":"Object Utilities for NoFlo","version":"0.1.0","keywords":["noflo","objects","utilities"],"author":"Kenneth Kan <kenhkan@gmail.com>","repo":"noflo/objects","dependencies":{"noflo/noflo":"*","component/underscore":"*"},"scripts":["components/Extend.js","components/MergeObjects.js","components/SplitObject.js","components/ReplaceKey.js","components/Keys.js","components/Values.js","components/Join.js","components/ExtractProperty.js","components/InsertProperty.js","components/SliceArray.js","components/SplitArray.js","components/FilterPropertyValue.js","components/FlattenObject.js","components/MapProperty.js","components/RemoveProperty.js","components/MapPropertyValue.js","components/GetObjectKey.js","components/UniqueArray.js","components/SetProperty.js","components/SimplifyObject.js","components/DuplicateProperty.js","components/CreateObject.js","components/CreateDate.js","components/SetPropertyValue.js","index.js"],"json":["component.json"],"noflo":{"components":{"Extend":"components/Extend.js","MergeObjects":"components/MergeObjects.js","SplitObject":"components/SplitObject.js","ReplaceKey":"components/ReplaceKey.js","Keys":"components/Keys.js","Values":"components/Values.js","Join":"components/Join.js","ExtractProperty":"components/ExtractProperty.js","InsertProperty":"components/InsertProperty.js","SliceArray":"components/SliceArray.js","SplitArray":"components/SplitArray.js","FilterPropertyValue":"components/FilterPropertyValue.js","FlattenObject":"components/FlattenObject.js","MapProperty":"components/MapProperty.js","RemoveProperty":"components/RemoveProperty.js","MapPropertyValue":"components/MapPropertyValue.js","GetObjectKey":"components/GetObjectKey.js","UniqueArray":"components/UniqueArray.js","SetProperty":"components/SetProperty.js","SimplifyObject":"components/SimplifyObject.js","DuplicateProperty":"components/DuplicateProperty.js","CreateObject":"components/CreateObject.js","CreateDate":"components/CreateDate.js","SetPropertyValue":"components/SetPropertyValue.js"}}}');
+module.exports = JSON.parse('{"name":"noflo-objects","description":"Object Utilities for NoFlo","version":"0.1.0","keywords":["noflo","objects","utilities"],"author":"Kenneth Kan <kenhkan@gmail.com>","repo":"noflo/objects","dependencies":{"noflo/noflo":"*","component/underscore":"*"},"scripts":["components/Extend.js","components/MergeObjects.js","components/SplitObject.js","components/ReplaceKey.js","components/Keys.js","components/Values.js","components/Join.js","components/ExtractProperty.js","components/InsertProperty.js","components/SliceArray.js","components/SplitArray.js","components/FilterPropertyValue.js","components/FlattenObject.js","components/MapProperty.js","components/RemoveProperty.js","components/MapPropertyValue.js","components/GetObjectKey.js","components/UniqueArray.js","components/SetProperty.js","components/SimplifyObject.js","components/DuplicateProperty.js","components/CreateObject.js","components/CreateDate.js","components/SetPropertyValue.js","components/CallMethod.js","index.js"],"json":["component.json"],"noflo":{"components":{"Extend":"components/Extend.js","MergeObjects":"components/MergeObjects.js","SplitObject":"components/SplitObject.js","ReplaceKey":"components/ReplaceKey.js","Keys":"components/Keys.js","Values":"components/Values.js","Join":"components/Join.js","ExtractProperty":"components/ExtractProperty.js","InsertProperty":"components/InsertProperty.js","SliceArray":"components/SliceArray.js","SplitArray":"components/SplitArray.js","FilterPropertyValue":"components/FilterPropertyValue.js","FlattenObject":"components/FlattenObject.js","MapProperty":"components/MapProperty.js","RemoveProperty":"components/RemoveProperty.js","MapPropertyValue":"components/MapPropertyValue.js","GetObjectKey":"components/GetObjectKey.js","UniqueArray":"components/UniqueArray.js","SetProperty":"components/SetProperty.js","SimplifyObject":"components/SimplifyObject.js","DuplicateProperty":"components/DuplicateProperty.js","CreateObject":"components/CreateObject.js","CreateDate":"components/CreateDate.js","SetPropertyValue":"components/SetPropertyValue.js","CallMethod":"components/CallMethod.js"}}}');
 });
 require.register("noflo-noflo-strings/index.js", function(exports, require, module){
 /*
@@ -10656,6 +10709,46 @@ Filter = (function(_super) {
 
 exports.getComponent = function() {
   return new Filter;
+};
+
+});
+require.register("noflo-noflo-strings/components/SendString.js", function(exports, require, module){
+var SendString, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+SendString = (function(_super) {
+  __extends(SendString, _super);
+
+  function SendString() {
+    var _this = this;
+    this.string = '';
+    this.inPorts = {
+      string: new noflo.Port('string'),
+      "in": new noflo.Port('bang')
+    };
+    this.outPorts = {
+      out: new noflo.Port('string')
+    };
+    this.inPorts.string.on('data', function(data) {
+      return _this.string = data;
+    });
+    this.inPorts["in"].on('data', function(data) {
+      return _this.outPorts.out.send(_this.string);
+    });
+    this.inPorts["in"].on('disconnect', function() {
+      return _this.outPorts.out.disconnect();
+    });
+  }
+
+  return SendString;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new SendString;
 };
 
 });
@@ -10761,7 +10854,7 @@ exports.getComponent = function() {
 
 });
 require.register("noflo-noflo-strings/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo-strings","description":"String Utilities for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-strings","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*","component/underscore":"*"},"scripts":["components/Filter.js","components/StringTemplate.js","components/Replace.js","index.js"],"json":["component.json"],"noflo":{"components":{"Filter":"components/Filter.js","StringTemplate":"components/StringTemplate.js","Replace":"components/Replace.js"}}}');
+module.exports = JSON.parse('{"name":"noflo-strings","description":"String Utilities for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-strings","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*","component/underscore":"*"},"scripts":["components/Filter.js","components/SendString.js","components/StringTemplate.js","components/Replace.js","index.js"],"json":["component.json"],"noflo":{"components":{"Filter":"components/Filter.js","SendString":"components/SendString.js","StringTemplate":"components/StringTemplate.js","Replace":"components/Replace.js"}}}');
 });
 require.register("noflo-noflo-dom/index.js", function(exports, require, module){
 /*
@@ -11949,6 +12042,7 @@ require.alias("noflo-noflo-objects/components/DuplicateProperty.js", "dataflow-n
 require.alias("noflo-noflo-objects/components/CreateObject.js", "dataflow-noflo/deps/noflo-objects/components/CreateObject.js");
 require.alias("noflo-noflo-objects/components/CreateDate.js", "dataflow-noflo/deps/noflo-objects/components/CreateDate.js");
 require.alias("noflo-noflo-objects/components/SetPropertyValue.js", "dataflow-noflo/deps/noflo-objects/components/SetPropertyValue.js");
+require.alias("noflo-noflo-objects/components/CallMethod.js", "dataflow-noflo/deps/noflo-objects/components/CallMethod.js");
 require.alias("noflo-noflo-objects/index.js", "dataflow-noflo/deps/noflo-objects/index.js");
 require.alias("noflo-noflo-objects/index.js", "noflo-objects/index.js");
 require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-objects/deps/noflo/src/lib/Graph.js");
@@ -11977,6 +12071,7 @@ require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
 require.alias("component-underscore/index.js", "noflo-noflo-objects/deps/underscore/index.js");
 
 require.alias("noflo-noflo-strings/components/Filter.js", "dataflow-noflo/deps/noflo-strings/components/Filter.js");
+require.alias("noflo-noflo-strings/components/SendString.js", "dataflow-noflo/deps/noflo-strings/components/SendString.js");
 require.alias("noflo-noflo-strings/components/StringTemplate.js", "dataflow-noflo/deps/noflo-strings/components/StringTemplate.js");
 require.alias("noflo-noflo-strings/components/Replace.js", "dataflow-noflo/deps/noflo-strings/components/Replace.js");
 require.alias("noflo-noflo-strings/index.js", "dataflow-noflo/deps/noflo-strings/index.js");
