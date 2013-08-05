@@ -109,7 +109,7 @@
           var dataflow = new Dataflow({appendTo:"#noflo-ui"});
 
           // Dataflow-Noflo connection
-          dataflow.plugins.noflo.registerGraph(graph);
+          dataflow.plugins.noflo.registerGraph(graph, dataflow);
       
           // Run the graph
           noflo.createNetwork(graph, function (network) {

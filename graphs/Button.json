@@ -3,9 +3,6 @@
     "GetButton": {
       "component": "dom/GetElement"
     },
-    "SplitButton": {
-      "component": "core/Split"
-    },
     "Listen": {
       "component": "dom/ListenMouse"
     },

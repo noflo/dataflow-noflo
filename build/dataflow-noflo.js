@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-08-01 (12:28:04 AM GMT+0200)
+/*! dataflow.js - v0.0.7 - 2013-08-05 (4:31:39 PM GMT+0200)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -3716,12 +3716,18 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     addInput: function(input){
       // Listen for label changes
+      if (!input.get('inputNode')) {
+        return;
+      }
       input.get("inputNode").on("change:label", function(i){
         input.view.$(".label").text(i.get("label"));
       }, this);
     },
     addOutput: function(output){
       // Listen for label changes
+      if (!output.get('outputNode')) {
+        return;
+      }
       output.get("outputNode").on("change:label", function(o){
         output.view.$(".label").text(o.get("label"));
       }, this);
@@ -11594,19 +11600,356 @@ require.register("d4tocchini-noflo-draggabilly/component.json", function(exports
 module.exports = JSON.parse('{"name":"noflo-draggabilly","description":"Draggabilly components for the NoFlo flow-based programming environment","author":"D4 Tocchini <d4@rituwall.com>","repo":"d4tocchini/noflo-draggabilly","version":"0.0.1","keywords":["fbp","drag","dnd","draggable"],"dependencies":{"noflo/noflo":"*"},"scripts":["components/Draggabilly.js","index.js"],"json":["component.json"],"noflo":{"components":{"Draggabilly":"components/Draggabilly.js"}}}');
 });
 require.register("dataflow-noflo/src/dataflow-noflo.js", function(exports, require, module){
-var Base, Dataflow, DataflowNoflo, NofloBase, NofloSubgraph, Subgraph, baseExtender, makeDataflowNodeProto;
+var Base, Dataflow, DataflowNoflo, Graph, NofloBase, NofloSubgraph, noflo;
 
 Dataflow = require('/meemoo-dataflow').Dataflow;
 
-Base = Dataflow.prototype.node("base");
+noflo = require('noflo');
 
-NofloBase = Dataflow.prototype.node("noflo-base");
+require('./component');
+
+require('./subgraph');
+
+Base = Dataflow.prototype.node('base');
+
+Graph = Dataflow.prototype.module('graph');
+
+NofloBase = Dataflow.prototype.node('noflo-base');
+
+NofloSubgraph = Dataflow.prototype.node('noflo-subgraph');
+
+DataflowNoflo = Dataflow.prototype.plugin("noflo");
+
+DataflowNoflo.initialize = function(dataflow) {
+  dataflow.plugins.library.update({
+    exclude: ["base", "base-resizable", "dataflow-subgraph", "noflo-base", "noflo-subgraph"]
+  });
+  dataflow.plugins.source.listeners(false);
+  return dataflow.plugins.log.listeners(false);
+};
+
+DataflowNoflo.aliases = {};
+
+DataflowNoflo.registerGraph = function(graph, dataflow, callback, main) {
+  var dataflowGraph;
+  if (main == null) {
+    main = true;
+  }
+  if (main) {
+    dataflowGraph = dataflow.loadGraph({});
+  } else {
+    dataflowGraph = new Graph.Model({
+      dataflow: dataflow
+    });
+  }
+  dataflowGraph.nofloGraph = graph;
+  graph.dataflowGraph = dataflowGraph;
+  return DataflowNoflo.loadComponents(graph.baseDir, function() {
+    return DataflowNoflo.loadGraph(graph, dataflow, function() {
+      if (callback) {
+        return callback(dataflowGraph);
+      }
+    });
+  });
+};
+
+DataflowNoflo.registerAlias = function(name) {
+  var parts;
+  parts = name.split('/');
+  if (parts.length === 2 && !DataflowNoflo.aliases[parts[1]]) {
+    return DataflowNoflo.aliases[parts[1]] = name;
+  }
+};
+
+DataflowNoflo.loadComponents = function(baseDir, ready) {
+  var cl;
+  cl = new noflo.ComponentLoader();
+  cl.baseDir = baseDir;
+  return cl.listComponents(function(types) {
+    var name, readyAfter, _results;
+    readyAfter = _.after(Object.keys(types).length, ready);
+    _results = [];
+    for (name in types) {
+      DataflowNoflo.registerAlias(name);
+      _results.push(cl.load(name, function(component) {
+        DataflowNoflo.registerComponent(name, component);
+        return readyAfter();
+      }));
+    }
+    return _results;
+  });
+};
+
+DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
+  var nodesReady;
+  graph.dataflowGraph.on("change", function(dfGraph) {
+    return dataflow.plugins.source.show(JSON.stringify(graph.toJSON(), null, 2));
+  });
+  graph.on("addNode", function(node) {
+    DataflowNoflo.addNode(node, dataflowGraph, dataflow);
+    return dataflow.plugins.log.add("node added: " + JSON.stringify(node));
+  });
+  graph.on("addEdge", function(edge) {
+    DataflowNoflo.addEdge(edge, dataflowGraph, dataflow);
+    return dataflow.plugins.log.add("edge added: " + JSON.stringify(edge));
+  });
+  graph.on("addInitial", function(iip) {
+    DataflowNoflo.addInitial(iip, dataflowGraph, dataflow);
+    return dataflow.plugins.log.add("IIP added: " + JSON.stringify(iip));
+  });
+  graph.on("removeNode", function(node) {
+    if (node.dataflowNode != null) {
+      node.dataflowNode.remove();
+    }
+    return dataflow.plugins.log.add("node removed: " + JSON.stringify(node));
+  });
+  graph.on("removeEdge", function(edge) {
+    if ((edge.from.node != null) && (edge.to.node != null)) {
+      if (edge.dataflowEdge != null) {
+        edge.dataflowEdge.remove();
+      }
+    }
+    return dataflow.plugins.log.add("edge removed: " + JSON.stringify(edge));
+  });
+  graph.dataflowGraph.on("node:add", function(dfGraph, node) {
+    if (dfGraph !== graph.dataflowGraph) {
+      return;
+    }
+    if (node.nofloNode == null) {
+      node.nofloNode = graph.addNode(node.id, node.type, {
+        x: node.get("x"),
+        y: node.get("y")
+      });
+    }
+    node.on("change:label", function(node, newName) {
+      var oldName;
+      oldName = node.nofloNode.id;
+      return graph.renameNode(oldName, newName);
+    });
+    node.on("change:x change:y", function() {
+      node.nofloNode.metadata.x = node.get('x');
+      return node.nofloNode.metadata.y = node.get('y');
+    });
+    node.on("change:state", function(port, value) {
+      var iip, metadata, _i, _len, _ref;
+      metadata = {};
+      _ref = graph.initializers;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        iip = _ref[_i];
+        if (!iip) {
+          continue;
+        }
+        if (iip.to.node === node.nofloNode.id && iip.to.port === port) {
+          if (iip.from.data === value) {
+            return;
+          }
+          metadata = iip.metadata;
+          graph.removeInitial(node.nofloNode.id, port);
+        }
+      }
+      return graph.addInitial(value, node.nofloNode.id, port, metadata);
+    });
+    return node.on("bang", function(port) {
+      var iip, metadata, _i, _len, _ref;
+      metadata = {};
+      _ref = graph.initializers;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        iip = _ref[_i];
+        if (!iip) {
+          continue;
+        }
+        if (iip.to.node === node.nofloNode.id && iip.to.port === port) {
+          metadata = iip.metadata;
+          graph.removeInitial(node.nofloNode.id, port);
+        }
+      }
+      return graph.addInitial(true, node.nofloNode.id, port, metadata);
+    });
+  });
+  dataflow.on("edge:add", function(dfGraph, edge) {
+    if (dfGraph !== graph.dataflowGraph) {
+      return;
+    }
+    if (edge.nofloEdge == null) {
+      edge.nofloEdge = graph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
+    }
+    return edge.on('change:route', function() {
+      return edge.nofloEdge.metadata.route = edge.get('route');
+    });
+  });
+  dataflow.on("node:remove", function(dfGraph, node) {
+    if (dfGraph !== graph.dataflowGraph) {
+      return;
+    }
+    if (node.nofloNode != null) {
+      return graph.removeNode(node.nofloNode.id);
+    }
+  });
+  dataflow.on("edge:remove", function(dfGraph, edge) {
+    if (dfGraph !== graph.dataflowGraph) {
+      return;
+    }
+    if (edge.nofloEdge != null) {
+      edge = edge.nofloEdge;
+      return graph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
+    }
+  });
+  nodesReady = _.after(graph.nodes.length, function() {
+    var edge, iip, _i, _j, _len, _len1, _ref, _ref1;
+    _ref = graph.edges;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      edge = _ref[_i];
+      DataflowNoflo.addEdge(edge, graph.dataflowGraph, dataflow);
+    }
+    _ref1 = graph.initializers;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      iip = _ref1[_j];
+      DataflowNoflo.addInitial(iip, graph.dataflowGraph, dataflow);
+    }
+    if (callback) {
+      return callback(graph.dataflowGraph);
+    }
+  });
+  return _.each(graph.nodes, function(node) {
+    return DataflowNoflo.addNode(node, graph.dataflowGraph, dataflow, nodesReady);
+  });
+};
+
+DataflowNoflo.getComponent = function(name, dataflow) {
+  var type;
+  type = dataflow.node(name);
+  if (!type.Model) {
+    if (DataflowNoflo.aliases[node.component]) {
+      type = dataflow.node(DataflowNoflo.aliases[node.component]);
+    } else {
+      throw new Error("Component " + node.component + " not available");
+    }
+  }
+  return type;
+};
+
+DataflowNoflo.addNode = function(node, dataflowGraph, dataflow, ready) {
+  var dfNode, subgraph, type;
+  if (!node) {
+    if (ready) {
+      ready(null);
+    }
+    return;
+  }
+  if (node.dataflowNode == null) {
+    type = DataflowNoflo.getComponent(node.component, dataflow);
+    dfNode = new type.Model({
+      id: node.id,
+      label: node.id,
+      x: (node.metadata.x != null ? node.metadata.x : 300),
+      y: (node.metadata.y != null ? node.metadata.y : 300),
+      parentGraph: dataflowGraph
+    });
+    dfNode.nofloNode = node;
+    node.dataflowNode = dfNode;
+    if (dfNode.isSubgraph()) {
+      subgraph = dfNode.nofloComponent.network.graph;
+      DataflowNoflo.registerGraph(subgraph, dataflow, function(dfGraph) {
+        dfNode.graph = dfGraph;
+        dataflowGraph.nodes.add(dfNode);
+        if (ready) {
+          return ready(node.dataflowNode);
+        }
+      }, false);
+      return;
+    }
+    dataflowGraph.nodes.add(dfNode);
+  }
+  if (ready) {
+    return ready(node.dataflowNode);
+  }
+};
+
+DataflowNoflo.addEdge = function(edge, dataflowGraph, dataflow) {
+  var Edge, dfEdge;
+  if (!edge) {
+    return;
+  }
+  if (edge.dataflowEdge == null) {
+    Edge = dataflow.module('edge');
+    if (!edge.metadata) {
+      edge.metadata = {};
+    }
+    dfEdge = new Edge.Model({
+      id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
+      parentGraph: dataflowGraph,
+      source: {
+        node: edge.from.node,
+        port: edge.from.port
+      },
+      target: {
+        node: edge.to.node,
+        port: edge.to.port
+      },
+      route: (edge.metadata.route != null ? edge.metadata.route : 0)
+    });
+    dfEdge.nofloEdge = edge;
+    edge.dataflowEdge = dfEdge;
+    return dataflowGraph.edges.add(dfEdge);
+  }
+};
+
+DataflowNoflo.addInitial = function(iip, dataflowGraph) {
+  var node, port;
+  node = dataflowGraph.nodes.get(iip.to.node);
+  if (node) {
+    port = node.inputs.get(iip.to.port);
+    if (port) {
+      return node.setState(iip.to.port, iip.from.data);
+    }
+  }
+};
+
+DataflowNoflo.registerComponent = function(name, component, ready) {
+  var base, newType, toPortDefinition;
+  toPortDefinition = function(port, name) {
+    return {
+      id: name,
+      type: port.type
+    };
+  };
+  base = NofloBase;
+  if (component.isSubgraph()) {
+    base = NofloSubgraph;
+  }
+  newType = Dataflow.prototype.node(name);
+  newType.Model = base.Model.extend({
+    defaults: function() {
+      return _.extend({}, Base.Model.prototype.defaults.call(this), {
+        type: name,
+        graph: {}
+      });
+    },
+    inputs: _.map(component.inPorts, toPortDefinition),
+    outputs: _.map(component.outPorts, toPortDefinition),
+    nofloComponent: component
+  });
+  newType.View = base.View.extend();
+  if (ready) {
+    return ready();
+  }
+};
+
+});
+require.register("dataflow-noflo/src/component.js", function(exports, require, module){
+var Base, Dataflow, NofloBase;
+
+Dataflow = require('/meemoo-dataflow').Dataflow;
+
+Base = Dataflow.prototype.node('base');
+
+NofloBase = Dataflow.prototype.node('noflo-base');
 
 NofloBase.Model = Base.Model.extend({
   defaults: function() {
     var defaults;
     defaults = Base.Model.prototype.defaults.call(this);
-    defaults.type = "noflo-base";
+    defaults.type = 'noflo-base';
     return defaults;
   },
   initialize: function() {
@@ -11625,15 +11968,19 @@ NofloBase.Model = Base.Model.extend({
   outputs: []
 });
 
-NofloBase.View = Base.View.extend({
-  initialize: function(options) {
-    return Base.View.prototype.initialize.call(this, options);
-  }
+NofloBase.View = Base.View.extend();
+
 });
+require.register("dataflow-noflo/src/subgraph.js", function(exports, require, module){
+var Dataflow, NofloBase, NofloSubgraph, Subgraph;
 
-Subgraph = Dataflow.prototype.node("dataflow-subgraph");
+Dataflow = require('/meemoo-dataflow').Dataflow;
 
-NofloSubgraph = Dataflow.prototype.node("noflo-subgraph");
+NofloBase = Dataflow.prototype.node('noflo-base');
+
+Subgraph = Dataflow.prototype.node('dataflow-subgraph');
+
+NofloSubgraph = Dataflow.prototype.node('noflo-subgraph');
 
 NofloSubgraph.Model = Subgraph.Model.extend({
   defaults: function() {
@@ -11644,7 +11991,7 @@ NofloSubgraph.Model = Subgraph.Model.extend({
     return defaults;
   },
   initialize: function() {
-    return Base.Model.prototype.initialize.call(this);
+    return Subgraph.Model.prototype.initialize.call(this);
   },
   isSubgraph: function() {
     return true;
@@ -11665,340 +12012,12 @@ NofloSubgraph.View = Subgraph.View.extend({
   }
 });
 
-baseExtender = function(name, component) {
-  var dfi, dfo, extender, inName, inputs, nfi, nfo, outName, outputs;
-  inputs = [];
-  for (inName in component.inPorts) {
-    nfi = component.inPorts[inName];
-    dfi = {
-      id: inName,
-      type: nfi.type
-    };
-    inputs.push(dfi);
-  }
-  outputs = [];
-  for (outName in component.outPorts) {
-    nfo = component.outPorts[outName];
-    dfo = {
-      id: outName,
-      type: nfo.type
-    };
-    outputs.push(dfo);
-  }
-  extender = {
-    defaults: function() {
-      var defaults;
-      defaults = NofloBase.Model.prototype.defaults.call(this);
-      defaults.type = name;
-      defaults.graph = {};
-      return defaults;
-    },
-    inputs: inputs,
-    outputs: outputs,
-    nofloComponent: component
-  };
-  return extender;
-};
-
-makeDataflowNodeProto = function(name, component, ready) {
-  var newType;
-  if (component.isSubgraph()) {
-    newType = Dataflow.prototype.node(name);
-    newType.Model = NofloSubgraph.Model.extend(baseExtender(name, component));
-    newType.View = NofloSubgraph.View.extend();
-    return;
-  }
-  newType = Dataflow.prototype.node(name);
-  newType.Model = NofloBase.Model.extend(baseExtender(name, component));
-  return newType.View = NofloBase.View.extend();
-};
-
-DataflowNoflo = Dataflow.prototype.plugin("noflo");
-
-DataflowNoflo.initialize = function(dataflow) {
-  var noflo;
-  noflo = require("noflo");
-  DataflowNoflo.aliases = {};
-  DataflowNoflo.registerGraph = function(nofloGraph, callback) {
-    var dataflowGraph;
-    dataflowGraph = dataflow.loadGraph({});
-    dataflowGraph.nofloGraph = nofloGraph;
-    nofloGraph.dataflowGraph = dataflowGraph;
-    dataflow.addContext({
-      id: "rename",
-      icon: "edit",
-      label: "rename",
-      action: function() {
-        var selected;
-        if (dataflowGraph.selected.length > 0) {
-          selected = dataflowGraph.selected[0];
-          if (selected.view) {
-            return selected.view.showControls();
-          }
-        }
-      },
-      contexts: ["one"]
-    });
-    return DataflowNoflo.loadComponents(nofloGraph.baseDir, function() {
-      var dfGraph;
-      dfGraph = DataflowNoflo.loadGraph(dataflowGraph, nofloGraph);
-      if (callback) {
-        return callback(dfGraph);
-      }
-    });
-  };
-  DataflowNoflo.loadComponents = function(baseDir, ready) {
-    var cl;
-    cl = new noflo.ComponentLoader();
-    cl.baseDir = baseDir;
-    return cl.listComponents(function(types) {
-      var name, parts, readyAfter, _results;
-      readyAfter = _.after(Object.keys(types).length, ready);
-      _results = [];
-      for (name in types) {
-        parts = name.split('/');
-        if (parts.length === 2 && !DataflowNoflo.aliases[parts[1]]) {
-          DataflowNoflo.aliases[parts[1]] = name;
-        }
-        _results.push(cl.load(name, function(component) {
-          makeDataflowNodeProto(name, component);
-          return readyAfter();
-        }));
-      }
-      return _results;
-    });
-  };
-  DataflowNoflo.loadGraph = function(dataflowGraph, nofloGraph) {
-    var node, nodesReady, sourceChanged, _i, _len, _ref;
-    dataflow.plugins.library.update({
-      exclude: ["base", "noflo-base"]
-    });
-    dataflow.plugins.source.listeners(false);
-    sourceChanged = function(o) {
-      return dataflow.plugins.source.show(JSON.stringify(o.toJSON(), null, 2));
-    };
-    dataflowGraph.on("change", function(dfGraph) {
-      return sourceChanged(nofloGraph);
-    });
-    dataflow.plugins.log.listeners(false);
-    nofloGraph.on("addNode", function(node) {
-      return dataflow.plugins.log.add("node added: " + JSON.stringify(node));
-    });
-    nofloGraph.on("removeNode", function(node) {
-      return dataflow.plugins.log.add("node removed: " + JSON.stringify(node));
-    });
-    nofloGraph.on("addEdge", function(edge) {
-      return dataflow.plugins.log.add("edge added: " + JSON.stringify(edge));
-    });
-    nofloGraph.on("addInitial", function(iip) {
-      return dataflow.plugins.log.add("IIP added: " + JSON.stringify(iip));
-    });
-    nofloGraph.on("removeEdge", function(edge) {
-      return dataflow.plugins.log.add("edge removed: " + JSON.stringify(edge));
-    });
-    nofloGraph.on("addNode", function(node) {
-      return DataflowNoflo.addNode(node, dataflowGraph);
-    });
-    nofloGraph.on("addEdge", function(edge) {
-      return DataflowNoflo.addEdge(edge, dataflowGraph);
-    });
-    nofloGraph.on("addInitial", function(iip) {
-      return DataflowNoflo.addInitial(iip, dataflowGraph);
-    });
-    nofloGraph.on("removeNode", function(node) {
-      if (node.dataflowNode != null) {
-        return node.dataflowNode.remove();
-      }
-    });
-    nofloGraph.on("removeEdge", function(edge) {
-      if ((edge.from.node != null) && (edge.to.node != null)) {
-        if (edge.dataflowEdge != null) {
-          return edge.dataflowEdge.remove();
-        }
-      }
-    });
-    dataflow.on("node:add", function(dfGraph, node) {
-      if (node.nofloNode == null) {
-        node.nofloNode = nofloGraph.addNode(node.id, node.type, {
-          x: node.get("x"),
-          y: node.get("y")
-        });
-      }
-      node.on("change:label", function(node, newName) {
-        var oldName;
-        oldName = node.nofloNode.id;
-        return nofloGraph.renameNode(oldName, newName);
-      });
-      node.on("change:x change:y", function() {
-        node.nofloNode.metadata.x = node.get('x');
-        return node.nofloNode.metadata.y = node.get('y');
-      });
-      node.on("change:state", function(port, value) {
-        var iip, metadata, _i, _len, _ref;
-        metadata = {};
-        _ref = nofloGraph.initializers;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          iip = _ref[_i];
-          if (!iip) {
-            continue;
-          }
-          if (iip.to.node === node.nofloNode.id && iip.to.port === port) {
-            if (iip.from.data === value) {
-              return;
-            }
-            metadata = iip.metadata;
-            nofloGraph.removeInitial(node.nofloNode.id, port);
-          }
-        }
-        return nofloGraph.addInitial(value, node.nofloNode.id, port, metadata);
-      });
-      return node.on("bang", function(port) {
-        var iip, metadata, _i, _len, _ref;
-        metadata = {};
-        _ref = nofloGraph.initializers;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          iip = _ref[_i];
-          if (!iip) {
-            continue;
-          }
-          if (iip.to.node === node.nofloNode.id && iip.to.port === port) {
-            metadata = iip.metadata;
-            nofloGraph.removeInitial(node.nofloNode.id, port);
-          }
-        }
-        return nofloGraph.addInitial(true, node.nofloNode.id, port, metadata);
-      });
-    });
-    dataflow.on("edge:add", function(dfGraph, edge) {
-      if (edge.nofloEdge == null) {
-        edge.nofloEdge = nofloGraph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
-      }
-      return edge.on('change:route', function() {
-        return edge.nofloEdge.metadata.route = edge.get('route');
-      });
-    });
-    dataflow.on("node:remove", function(dfGraph, node) {
-      if (node.nofloNode != null) {
-        return nofloGraph.removeNode(node.nofloNode.id);
-      }
-    });
-    dataflow.on("edge:remove", function(dfGraph, edge) {
-      if (edge.nofloEdge != null) {
-        edge = edge.nofloEdge;
-        return nofloGraph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
-      }
-    });
-    nodesReady = _.after(nofloGraph.nodes.length, function() {
-      var edge, iip, _i, _j, _len, _len1, _ref, _ref1, _results;
-      _ref = nofloGraph.edges;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        edge = _ref[_i];
-        DataflowNoflo.addEdge(edge, dataflowGraph);
-      }
-      _ref1 = nofloGraph.initializers;
-      _results = [];
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        iip = _ref1[_j];
-        _results.push(DataflowNoflo.addInitial(iip, dataflowGraph));
-      }
-      return _results;
-    });
-    _ref = nofloGraph.nodes;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      node = _ref[_i];
-      DataflowNoflo.addNode(node, dataflowGraph, nodesReady);
-    }
-    return dataflowGraph;
-  };
-  DataflowNoflo.addNode = function(node, dataflowGraph, ready) {
-    var dfNode, type;
-    if (!node) {
-      return;
-    }
-    if (node.dataflowNode == null) {
-      type = dataflow.node(node.component);
-      if (!type.Model) {
-        if (DataflowNoflo.aliases[node.component]) {
-          type = dataflow.node(DataflowNoflo.aliases[node.component]);
-        } else {
-          throw new Error("Component " + node.component + " not available");
-        }
-      }
-      dfNode = new type.Model({
-        id: node.id,
-        label: node.id,
-        x: (node.metadata.x != null ? node.metadata.x : 300),
-        y: (node.metadata.y != null ? node.metadata.y : 300),
-        parentGraph: dataflowGraph
-      });
-      dfNode.nofloNode = node;
-      node.dataflowNode = dfNode;
-      if (dfNode.isSubgraph()) {
-        DataflowNoflo.registerGraph(dfNode.nofloComponent.network.graph, function(dfGraph) {
-          dfNode.set('graph', dfGraph);
-          console.log("ADD GRAPH");
-          dataflowGraph.nodes.add(dfNode);
-          if (ready) {
-            return ready();
-          }
-        });
-        return;
-      }
-      dataflowGraph.nodes.add(dfNode);
-    }
-    if (ready) {
-      ready();
-    }
-    return node.dataflowNode;
-  };
-  DataflowNoflo.addEdge = function(edge, dataflowGraph) {
-    var Edge, dfEdge;
-    if (!edge) {
-      return;
-    }
-    if (edge.dataflowEdge == null) {
-      Edge = dataflow.module("edge");
-      if (!edge.metadata) {
-        edge.metadata = {};
-      }
-      dfEdge = new Edge.Model({
-        id: edge.from.node + ":" + edge.from.port + "::" + edge.to.node + ":" + edge.to.port,
-        parentGraph: dataflowGraph,
-        source: {
-          node: edge.from.node,
-          port: edge.from.port
-        },
-        target: {
-          node: edge.to.node,
-          port: edge.to.port
-        },
-        route: (edge.metadata.route != null ? edge.metadata.route : 0)
-      });
-      dfEdge.nofloEdge = edge;
-      edge.dataflowEdge = dfEdge;
-      return dataflowGraph.edges.add(dfEdge);
-    }
-  };
-  return DataflowNoflo.addInitial = function(iip, dataflowGraph) {
-    var node, port;
-    node = dataflowGraph.nodes.get(iip.to.node);
-    if (node) {
-      port = node.inputs.get(iip.to.port);
-      if (port) {
-        return node.setState(iip.to.port, iip.from.data);
-      }
-    } else {
-
-    }
-  };
-};
-
 });
 require.register("dataflow-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-physics":"*","d4tocchini/noflo-draggabilly":"*"},"scripts":["src/dataflow-noflo.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
+module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-physics":"*","d4tocchini/noflo-draggabilly":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
 });
 require.register("dataflow-noflo/graphs/Button.json", function(exports, require, module){
-module.exports = JSON.parse('{"processes":{"GetButton":{"component":"dom/GetElement"},"SplitButton":{"component":"core/Split"},"Listen":{"component":"dom/ListenMouse"},"GetClicked":{"component":"objects/GetObjectKey"},"GetValue":{"component":"dom/ReadHtml"}},"connections":[{"src":{"process":"GetButton","port":"element"},"tgt":{"process":"Listen","port":"element"}},{"src":{"process":"Listen","port":"click"},"tgt":{"process":"GetClicked","port":"in"}},{"data":"target","tgt":{"process":"GetClicked","port":"key"}},{"src":{"process":"GetClicked","port":"out"},"tgt":{"process":"GetValue","port":"container"}}],"exports":[{"private":"getbutton.selector","public":"selector"},{"private":"getbutton.in","public":"container"},{"private":"getvalue.html","public":"clicked"}]}');
+module.exports = JSON.parse('{"processes":{"GetButton":{"component":"dom/GetElement"},"Listen":{"component":"dom/ListenMouse"},"GetClicked":{"component":"objects/GetObjectKey"},"GetValue":{"component":"dom/ReadHtml"}},"connections":[{"src":{"process":"GetButton","port":"element"},"tgt":{"process":"Listen","port":"element"}},{"src":{"process":"Listen","port":"click"},"tgt":{"process":"GetClicked","port":"in"}},{"data":"target","tgt":{"process":"GetClicked","port":"key"}},{"src":{"process":"GetClicked","port":"out"},"tgt":{"process":"GetValue","port":"container"}}],"exports":[{"private":"getbutton.selector","public":"selector"},{"private":"getbutton.in","public":"container"},{"private":"getvalue.html","public":"clicked"}]}');
 });
 require.alias("meemoo-dataflow/build/dataflow.build.js", "dataflow-noflo/deps/dataflow/build/dataflow.build.js");
 require.alias("meemoo-dataflow/build/dataflow.build.js", "dataflow-noflo/deps/dataflow/index.js");

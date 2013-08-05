@@ -23,7 +23,9 @@
     "d4tocchini/noflo-draggabilly": "*"
   },
   "scripts": [
-    "src/dataflow-noflo.coffee"
+    "src/dataflow-noflo.coffee",
+    "src/component.coffee",
+    "src/subgraph.coffee"
   ],
   "main": "src/dataflow-noflo.js",
   "json": [
