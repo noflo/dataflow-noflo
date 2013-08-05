@@ -1,0 +1,256 @@
+{
+  "properties": {},
+  "exports": [],
+  "processes": {
+    "GetArea": {
+      "component": "dom/GetElement",
+      "metadata": {
+        "x": 0,
+        "y": 444
+      }
+    },
+    "SplitArea": {
+      "component": "core/Split",
+      "metadata": {
+        "x": 245,
+        "y": 452
+      }
+    },
+    "PrepareCalculator": {
+      "component": "strings/StringTemplate",
+      "metadata": {
+        "x": 294,
+        "y": 185
+      }
+    },
+    "WriteCalculator": {
+      "component": "dom/WriteHtml",
+      "metadata": {
+        "x": 575,
+        "y": 179
+      }
+    },
+    "Button": {
+      "component": "dataflow-noflo/Button",
+      "metadata": {
+        "x": 572,
+        "y": 300
+      }
+    },
+    "RouteClicks": {
+      "component": "strings/Filter",
+      "metadata": {
+        "x": 840,
+        "y": 303
+      }
+    },
+    "GetValueElement": {
+      "component": "dom/GetElement",
+      "metadata": {
+        "x": 577,
+        "y": 437
+      }
+    },
+    "SetValue": {
+      "component": "dom/WriteHtml",
+      "metadata": {
+        "x": 1113,
+        "y": 300
+      }
+    },
+    "GetFuncElement": {
+      "component": "dom/GetElement",
+      "metadata": {
+        "x": 576,
+        "y": 566
+      }
+    },
+    "SetFunc": {
+      "component": "dom/WriteHtml",
+      "metadata": {
+        "x": 1110,
+        "y": 485
+      }
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "GetArea",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "SplitArea",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "PrepareCalculator",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "WriteCalculator",
+        "port": "html"
+      }
+    },
+    {
+      "src": {
+        "process": "SplitArea",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "WriteCalculator",
+        "port": "container"
+      }
+    },
+    {
+      "src": {
+        "process": "SplitArea",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "Button",
+        "port": "container"
+      }
+    },
+    {
+      "src": {
+        "process": "SplitArea",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "GetValueElement",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "GetValueElement",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "SetValue",
+        "port": "container"
+      }
+    },
+    {
+      "src": {
+        "process": "SplitArea",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "GetFuncElement",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "GetFuncElement",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "SetFunc",
+        "port": "container"
+      }
+    },
+    {
+      "src": {
+        "process": "Button",
+        "port": "clicked"
+      },
+      "tgt": {
+        "process": "RouteClicks",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "RouteClicks",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "SetValue",
+        "port": "html"
+      }
+    },
+    {
+      "src": {
+        "process": "RouteClicks",
+        "port": "missed"
+      },
+      "tgt": {
+        "process": "SetFunc",
+        "port": "html"
+      }
+    },
+    {
+      "data": "[\\d]+",
+      "tgt": {
+        "process": "RouteClicks",
+        "port": "pattern"
+      }
+    },
+    {
+      "data": ".area",
+      "tgt": {
+        "process": "GetArea",
+        "port": "selector"
+      }
+    },
+    {
+      "data": "<div class=\"calculator\"><div class=\"value\"></div><div class=\"func\"></div><% _.each(numbers, function(number) { %> <button class=\"button\"><%= number %></button> <% }); %><% _.each(functions, function(func) { %> <button class=\"button\"><%= func %></button> <% }); %></div>",
+      "tgt": {
+        "process": "PrepareCalculator",
+        "port": "template"
+      }
+    },
+    {
+      "data": {
+        "numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          0
+        ],
+        "functions": [
+          "+",
+          "-",
+          "*",
+          "/"
+        ]
+      },
+      "tgt": {
+        "process": "PrepareCalculator",
+        "port": "in"
+      }
+    },
+    {
+      "data": ".value",
+      "tgt": {
+        "process": "GetValueElement",
+        "port": "selector"
+      }
+    },
+    {
+      "data": ".func",
+      "tgt": {
+        "process": "GetFuncElement",
+        "port": "selector"
+      }
+    },
+    {
+      "data": ".button",
+      "tgt": {
+        "process": "Button",
+        "port": "selector"
+      }
+    }
+  ]
+}
