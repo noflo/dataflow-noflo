@@ -1,0 +1,72 @@
+{
+  "processes": {
+    "GetButton": {
+      "component": "dom/GetElement"
+    },
+    "SplitButton": {
+      "component": "core/Split"
+    },
+    "Listen": {
+      "component": "dom/ListenMouse"
+    },
+    "GetClicked": {
+      "component": "objects/GetObjectKey"
+    },
+    "GetValue": {
+      "component": "dom/ReadHtml"
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "GetButton",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "Listen",
+        "port": "element"
+      }
+    },
+    {
+      "src": {
+        "process": "Listen",
+        "port": "click"
+      },
+      "tgt": {
+        "process": "GetClicked",
+        "port": "in"
+      }
+    },
+    {
+      "data": "target",
+      "tgt": {
+        "process": "GetClicked",
+        "port": "key"
+      }
+    },
+    {
+      "src": {
+        "process": "GetClicked",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "GetValue",
+        "port": "container"
+      }
+    }
+  ],
+  "exports": [
+    {
+      "private": "getbutton.selector",
+      "public": "selector"
+    },
+    {
+      "private": "getbutton.in",
+      "public": "container"
+    },
+    {
+      "private": "getvalue.html",
+      "public": "clicked"
+    }
+  ]
+}
