@@ -11594,7 +11594,7 @@ require.register("d4tocchini-noflo-draggabilly/component.json", function(exports
 module.exports = JSON.parse('{"name":"noflo-draggabilly","description":"Draggabilly components for the NoFlo flow-based programming environment","author":"D4 Tocchini <d4@rituwall.com>","repo":"d4tocchini/noflo-draggabilly","version":"0.0.1","keywords":["fbp","drag","dnd","draggable"],"dependencies":{"noflo/noflo":"*"},"scripts":["components/Draggabilly.js","index.js"],"json":["component.json"],"noflo":{"components":{"Draggabilly":"components/Draggabilly.js"}}}');
 });
 require.register("dataflow-noflo/src/dataflow-noflo.js", function(exports, require, module){
-var Base, Dataflow, DataflowNoflo, NofloBase, baseExtender, makeDataflowNodeProto;
+var Base, Dataflow, DataflowNoflo, NofloBase, NofloSubgraph, Subgraph, baseExtender, makeDataflowNodeProto;
 
 Dataflow = require('/meemoo-dataflow').Dataflow;
 
@@ -11612,6 +11612,9 @@ NofloBase.Model = Base.Model.extend({
   initialize: function() {
     return Base.Model.prototype.initialize.call(this);
   },
+  isSubgraph: function() {
+    return false;
+  },
   unload: function() {},
   toJSON: function() {
     var json;
@@ -11625,6 +11628,40 @@ NofloBase.Model = Base.Model.extend({
 NofloBase.View = Base.View.extend({
   initialize: function(options) {
     return Base.View.prototype.initialize.call(this, options);
+  }
+});
+
+Subgraph = Dataflow.prototype.node("dataflow-subgraph");
+
+NofloSubgraph = Dataflow.prototype.node("noflo-subgraph");
+
+NofloSubgraph.Model = Subgraph.Model.extend({
+  defaults: function() {
+    var defaults, graph;
+    defaults = Subgraph.Model.prototype.defaults.call(this);
+    defaults.type = "noflo-subgraph";
+    graph = {};
+    return defaults;
+  },
+  initialize: function() {
+    return Base.Model.prototype.initialize.call(this);
+  },
+  isSubgraph: function() {
+    return true;
+  },
+  unload: function() {},
+  toJSON: function() {
+    var json;
+    json = Subgraph.Model.prototype.toJSON.call(this);
+    return json;
+  },
+  inputs: [],
+  outputs: []
+});
+
+NofloSubgraph.View = Subgraph.View.extend({
+  initialize: function(options) {
+    return Subgraph.View.prototype.initialize.call(this, options);
   }
 });
 
@@ -11653,16 +11690,24 @@ baseExtender = function(name, component) {
       var defaults;
       defaults = NofloBase.Model.prototype.defaults.call(this);
       defaults.type = name;
+      defaults.graph = {};
       return defaults;
     },
     inputs: inputs,
-    outputs: outputs
+    outputs: outputs,
+    nofloComponent: component
   };
   return extender;
 };
 
-makeDataflowNodeProto = function(name, component) {
+makeDataflowNodeProto = function(name, component, ready) {
   var newType;
+  if (component.isSubgraph()) {
+    newType = Dataflow.prototype.node(name);
+    newType.Model = NofloSubgraph.Model.extend(baseExtender(name, component));
+    newType.View = NofloSubgraph.View.extend();
+    return;
+  }
   newType = Dataflow.prototype.node(name);
   newType.Model = NofloBase.Model.extend(baseExtender(name, component));
   return newType.View = NofloBase.View.extend();
@@ -11674,7 +11719,7 @@ DataflowNoflo.initialize = function(dataflow) {
   var noflo;
   noflo = require("noflo");
   DataflowNoflo.aliases = {};
-  DataflowNoflo.registerGraph = function(nofloGraph) {
+  DataflowNoflo.registerGraph = function(nofloGraph, callback) {
     var dataflowGraph;
     dataflowGraph = dataflow.loadGraph({});
     dataflowGraph.nofloGraph = nofloGraph;
@@ -11695,7 +11740,11 @@ DataflowNoflo.initialize = function(dataflow) {
       contexts: ["one"]
     });
     return DataflowNoflo.loadComponents(nofloGraph.baseDir, function() {
-      return DataflowNoflo.loadGraph(dataflowGraph, nofloGraph);
+      var dfGraph;
+      dfGraph = DataflowNoflo.loadGraph(dataflowGraph, nofloGraph);
+      if (callback) {
+        return callback(dfGraph);
+      }
     });
   };
   DataflowNoflo.loadComponents = function(baseDir, ready) {
@@ -11720,7 +11769,7 @@ DataflowNoflo.initialize = function(dataflow) {
     });
   };
   DataflowNoflo.loadGraph = function(dataflowGraph, nofloGraph) {
-    var edge, iip, node, sourceChanged, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
+    var node, nodesReady, sourceChanged, _i, _len, _ref;
     dataflow.plugins.library.update({
       exclude: ["base", "noflo-base"]
     });
@@ -11839,25 +11888,33 @@ DataflowNoflo.initialize = function(dataflow) {
         return nofloGraph.removeEdge(edge.from.node, edge.from.port, edge.to.node, edge.to.port);
       }
     });
+    nodesReady = _.after(nofloGraph.nodes.length, function() {
+      var edge, iip, _i, _j, _len, _len1, _ref, _ref1, _results;
+      _ref = nofloGraph.edges;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        edge = _ref[_i];
+        DataflowNoflo.addEdge(edge, dataflowGraph);
+      }
+      _ref1 = nofloGraph.initializers;
+      _results = [];
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        iip = _ref1[_j];
+        _results.push(DataflowNoflo.addInitial(iip, dataflowGraph));
+      }
+      return _results;
+    });
     _ref = nofloGraph.nodes;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      DataflowNoflo.addNode(node, dataflowGraph);
-    }
-    _ref1 = nofloGraph.edges;
-    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      edge = _ref1[_j];
-      DataflowNoflo.addEdge(edge, dataflowGraph);
-    }
-    _ref2 = nofloGraph.initializers;
-    for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-      iip = _ref2[_k];
-      DataflowNoflo.addInitial(iip, dataflowGraph);
+      DataflowNoflo.addNode(node, dataflowGraph, nodesReady);
     }
     return dataflowGraph;
   };
-  DataflowNoflo.addNode = function(node, dataflowGraph) {
+  DataflowNoflo.addNode = function(node, dataflowGraph, ready) {
     var dfNode, type;
+    if (!node) {
+      return;
+    }
     if (node.dataflowNode == null) {
       type = dataflow.node(node.component);
       if (!type.Model) {
@@ -11876,12 +11933,29 @@ DataflowNoflo.initialize = function(dataflow) {
       });
       dfNode.nofloNode = node;
       node.dataflowNode = dfNode;
+      if (dfNode.isSubgraph()) {
+        DataflowNoflo.registerGraph(dfNode.nofloComponent.network.graph, function(dfGraph) {
+          dfNode.set('graph', dfGraph);
+          console.log("ADD GRAPH");
+          dataflowGraph.nodes.add(dfNode);
+          if (ready) {
+            return ready();
+          }
+        });
+        return;
+      }
       dataflowGraph.nodes.add(dfNode);
+    }
+    if (ready) {
+      ready();
     }
     return node.dataflowNode;
   };
   DataflowNoflo.addEdge = function(edge, dataflowGraph) {
     var Edge, dfEdge;
+    if (!edge) {
+      return;
+    }
     if (edge.dataflowEdge == null) {
       Edge = dataflow.module("edge");
       if (!edge.metadata) {
