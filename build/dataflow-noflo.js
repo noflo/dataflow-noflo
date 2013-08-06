@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-08-05 (4:31:39 PM GMT+0200)
+/*! dataflow.js - v0.0.7 - 2013-08-05 (3:42:02 PM EDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1333,6 +1333,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 }(Dataflow) );
 
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.Model = Backbone.Model.extend({
+    
+  });
+
+  Card.Collection = Backbone.Collection.extend({
+    model: Card.Model
+  });
+
+}(Dataflow));
+
 (function(Dataflow) {
 
   var Graph = Dataflow.prototype.module("graph");
@@ -2113,6 +2127,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           input = $('<input type="checkbox" class="input input-boolean">');
           input.change(this.inputBoolean.bind(this));
           return input;
+        case 'object':
+          input = $('<textarea class="input input-object"></textarea>');
+          input.on('change, keyup', this.inputObject.bind(this));
+          return input;
         case 'bang':
           input = $('<button class="input input-bang">!</button>');
           input.click(this.inputBang.bind(this));
@@ -2138,6 +2156,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         input.prop('checked', value);
         return;
       }
+      if (type === 'object') {
+        input.text(JSON.stringify(value, null, 2));
+        return;
+      }
       input.val(value);
     },
     inputSelect: function(e){
@@ -2155,6 +2177,14 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     inputBoolean: function(e){
       this.model.parentNode.setState(this.model.id, $(e.target).prop("checked"));
+    },
+    inputObject: function(e){
+      try {
+        var obj = JSON.parse($(e.target).text());
+        this.model.parentNode.setState(this.model.id, obj);
+      } catch (err) {
+        // TODO: We need error handling in the form
+      }
     },
     inputBang: function(){
       this.model.parentNode.setBang(this.model.id);
@@ -2921,6 +2951,23 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 }(Dataflow) );
 
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.View = Backbone.View.extend({
+    tagName: "div",
+    initialize: function(){
+    }
+  });
+
+  Card.CollectionView = Backbone.CollectionView.extend({
+    tagName: "div",
+    itemView: Card.View
+  }); 
+
+}(Dataflow));
+
 ( function(Dataflow) {
 
   var Edit = Dataflow.prototype.plugin("edit");
@@ -3112,7 +3159,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
   Library.initialize = function(dataflow){
  
-    var library = $('<ul class="dataflow-plugin-library" style="list-style:none; padding-left:0" />');
+    var library = $('<ul class="dataflow-plugin-library" style="list-style:none; padding:0; margin:15px 0;" />');
 
     var addNode = function(node, x, y) {
       return function(){
@@ -3127,13 +3174,12 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         while (dataflow.currentGraph.nodes.get(id)){
           id++;
         }
-        // Position if button clicked
+        // Position
         x = x===undefined ? 200 : x;
         y = y===undefined ? 200 : y;
-        x -= dataflow.currentGraph.get("panX");
-        y -= dataflow.currentGraph.get("panY");
-        x /= zoom;
-        y /= zoom;
+        x = x/zoom - dataflow.currentGraph.get("panX");
+        y = y/zoom - dataflow.currentGraph.get("panY");
+
         // Add node
         var newNode = new node.Model({
           id: id,
@@ -3205,8 +3251,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
     var $form = $( 
       '<form class="dataflow-plugin-view-source">'+
-        '<div style="position: absolute; top:5px; left:5px; bottom:35px; right:5px;">'+
-          '<textarea class="code" style="width:100%; height:100%; margin:0; padding: 0;"></textarea><br/>'+
+        '<div style="">'+
+          '<textarea class="code" style="width:99%; height:400px;; margin:0; padding: 0;"></textarea><br/>'+
         '</div>'+
         '<input class="apply" type="submit" value="apply changes" style="position: absolute; right:5px; bottom:5px;" />'+
       '</form>'
@@ -3217,7 +3263,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       id: "source", 
       name: "", 
       menu: $form, 
-      icon: "globe"
+      icon: "cog"
     });
 
     var show = function(source) {
@@ -3272,7 +3318,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   Log.initialize = function(dataflow){
 
     var $log = $(
-      '<div class="dataflow-plugin-log" style="position: absolute; top:5px; left:5px; bottom:5px; right:5px; overflow:auto;">'+
+      '<div class="dataflow-plugin-log" style="max-height:400px; overflow:auto;">'+
         '<ol class="loglist"></ol>'+
       '</div>'
     );
@@ -3281,7 +3327,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       id: "log", 
       name: "", 
       menu: $log, 
-      icon: "cog"
+      icon: "th-list"
     });
 
     // Log message and scroll
@@ -3741,8 +3787,11 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 });
 require.register("component-indexof/index.js", function(exports, require, module){
+
+var indexOf = [].indexOf;
+
 module.exports = function(arr, obj){
-  if (arr.indexOf) return arr.indexOf(obj);
+  if (indexOf) return arr.indexOf(obj);
   for (var i = 0; i < arr.length; ++i) {
     if (arr[i] === obj) return i;
   }
@@ -5943,13 +5992,13 @@ module.exports = (function(){
       function parse_anychar() {
         var result0;
         
-        if (/^[a-zA-Z0-9 .,#:{}@+?!^=()_\-$*\/\\[\]{}"&`%]/.test(input.charAt(pos))) {
+        if (/^[a-zA-Z0-9 .,#:{}@+?!^=()_\-$*\/\\[\]{}"&`]/.test(input.charAt(pos))) {
           result0 = input.charAt(pos);
           pos++;
         } else {
           result0 = null;
           if (reportFailures === 0) {
-            matchFailed("[a-zA-Z0-9 .,#:{}@+?!^=()_\\-$*\\/\\\\[\\]{}\"&`%]");
+            matchFailed("[a-zA-Z0-9 .,#:{}@+?!^=()_\\-$*\\/\\\\[\\]{}\"&`]");
           }
         }
         return result0;
@@ -6626,7 +6675,7 @@ exports.loadFile = function(file, success) {
       exports.loadJSON(definition, success);
     } catch (_error) {
       e = _error;
-      throw new Error("Failed to load graph " + file + ": " + e.message);
+      throw new Error("Failed to load graph " + file);
     }
     return;
   }
@@ -8177,7 +8226,7 @@ exports.getComponent = function() {
 
 });
 require.register("noflo-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo","description":"Flow-Based Programming environment for JavaScript","keywords":["fbp","workflow","flow"],"repo":"noflo/noflo","version":"0.4.0","dependencies":{"component/emitter":"*","component/underscore":"*","noflo/fbp":"*"},"development":{},"license":"MIT","main":"src/lib/NoFlo.js","scripts":["src/lib/Graph.js","src/lib/InternalSocket.js","src/lib/Port.js","src/lib/ArrayPort.js","src/lib/Component.js","src/lib/AsyncComponent.js","src/lib/LoggingComponent.js","src/lib/ComponentLoader.js","src/lib/NoFlo.js","src/lib/Network.js","src/components/Graph.js"],"json":["component.json"],"noflo":{"components":{"Graph":"src/components/Graph.js"}}}');
+module.exports = JSON.parse('{"name":"noflo","description":"Flow-Based Programming environment for JavaScript","keywords":["fbp","workflow","flow"],"repo":"noflo/noflo","version":"0.3.3","dependencies":{"component/emitter":"*","component/underscore":"*","noflo/fbp":"*"},"development":{},"license":"MIT","main":"src/lib/NoFlo.js","scripts":["src/lib/Graph.js","src/lib/InternalSocket.js","src/lib/Port.js","src/lib/ArrayPort.js","src/lib/Component.js","src/lib/AsyncComponent.js","src/lib/LoggingComponent.js","src/lib/ComponentLoader.js","src/lib/NoFlo.js","src/lib/Network.js","src/components/Graph.js"],"json":["component.json"],"noflo":{"components":{"Graph":"src/components/Graph.js"}}}');
 });
 require.register("noflo-noflo-core/index.js", function(exports, require, module){
 /*
@@ -8770,10 +8819,8 @@ module.exports = JSON.parse('{"name":"noflo-core","description":"NoFlo Essential
 });
 require.register("noflo-noflo-flow/index.js", function(exports, require, module){
 /*
- * This file can be used for general library features of flow.
- *
- * The library features can be made available as CommonJS modules that the
- * components in this project utilize.
+ * This file can be used for general library features that are exposed as CommonJS modules
+ * that the components then utilize
  */
 
 });
@@ -11544,6 +11591,7 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.subscribe = function(element) {
     var draggie;
+    console.log(this.options);
     draggie = this.draggie = new Draggabilly(element, this.options);
     draggie.on('dragStart', this.dragstart);
     draggie.on('dragMove', this.dragmove);
@@ -11552,6 +11600,7 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.setOptions = function(options) {
     var key, value, _results;
+    console.log(options);
     if (typeof options !== "object") {
       throw new Error("Options is not an object");
     }
@@ -11687,11 +11736,11 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
   });
   graph.on("addNode", function(node) {
     DataflowNoflo.addNode(node, dataflowGraph, dataflow);
-    return dataflow.plugins.log.add("node added: " + JSON.stringify(node));
+    return dataflow.plugins.log.add("node added: " + node.id);
   });
   graph.on("addEdge", function(edge) {
     DataflowNoflo.addEdge(edge, dataflowGraph, dataflow);
-    return dataflow.plugins.log.add("edge added: " + JSON.stringify(edge));
+    return dataflow.plugins.log.add("edge added.");
   });
   graph.on("addInitial", function(iip) {
     DataflowNoflo.addInitial(iip, dataflowGraph, dataflow);
@@ -11701,7 +11750,7 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
     if (node.dataflowNode != null) {
       node.dataflowNode.remove();
     }
-    return dataflow.plugins.log.add("node removed: " + JSON.stringify(node));
+    return dataflow.plugins.log.add("node removed: " + node.id);
   });
   graph.on("removeEdge", function(edge) {
     if ((edge.from.node != null) && (edge.to.node != null)) {
@@ -11709,7 +11758,7 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
         edge.dataflowEdge.remove();
       }
     }
-    return dataflow.plugins.log.add("edge removed: " + JSON.stringify(edge));
+    return dataflow.plugins.log.add("edge removed.");
   });
   graph.dataflowGraph.on("node:add", function(dfGraph, node) {
     if (dfGraph !== graph.dataflowGraph) {
