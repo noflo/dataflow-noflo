@@ -11667,9 +11667,6 @@ NofloSubgraph = Dataflow.prototype.node('noflo-subgraph');
 DataflowNoflo = Dataflow.prototype.plugin("noflo");
 
 DataflowNoflo.initialize = function(dataflow) {
-  dataflow.plugins.library.update({
-    exclude: ["base", "base-resizable", "dataflow-subgraph", "noflo-base", "noflo-subgraph"]
-  });
   dataflow.plugins.source.listeners(false);
   return dataflow.plugins.log.listeners(false);
 };
@@ -11691,6 +11688,9 @@ DataflowNoflo.registerGraph = function(graph, dataflow, callback, main) {
   dataflowGraph.nofloGraph = graph;
   graph.dataflowGraph = dataflowGraph;
   return DataflowNoflo.loadComponents(graph.baseDir, function() {
+    dataflow.plugins.library.update({
+      exclude: ["base", "base-resizable", "dataflow-subgraph", "noflo-base", "noflo-subgraph"]
+    });
     return DataflowNoflo.loadGraph(graph, dataflow, function() {
       if (callback) {
         return callback(dataflowGraph);

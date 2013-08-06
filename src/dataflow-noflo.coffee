@@ -16,16 +16,6 @@ NofloSubgraph = Dataflow::node 'noflo-subgraph'
 # Make plugin
 DataflowNoflo = Dataflow::plugin("noflo")
 DataflowNoflo.initialize = (dataflow) ->
-  # We don't want to use base components directly
-  dataflow.plugins.library.update
-    exclude: [
-      "base"
-      "base-resizable"
-      "dataflow-subgraph"
-      "noflo-base"
-      "noflo-subgraph"
-    ]
-
   # Plugin: source
   dataflow.plugins.source.listeners false
 
@@ -50,6 +40,16 @@ DataflowNoflo.registerGraph = (graph, dataflow, callback, main = true) ->
 
   # Load components and prepare the Dataflow graph
   DataflowNoflo.loadComponents graph.baseDir, ->
+    # We don't want to use base components directly
+    dataflow.plugins.library.update
+      exclude: [
+        "base"
+        "base-resizable"
+        "dataflow-subgraph"
+        "noflo-base"
+        "noflo-subgraph"
+      ]
+
     DataflowNoflo.loadGraph graph, dataflow, ->
       callback dataflowGraph if callback
 
