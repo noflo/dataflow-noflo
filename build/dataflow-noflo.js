@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-08-05 (3:42:02 PM EDT)
+/*! dataflow.js - v0.0.7 - 2013-08-06 (2:43:58 PM EDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -706,6 +706,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           id: info.id,
           icon: info.icon,
           label: info.name,
+          showLabel: false,
           action: function(){ this.showMenu(info.id); }
         });
       }
@@ -1836,9 +1837,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
     },
     dragStop: function(event, ui){
-      // HACK
-      console.log("hmm");
-
       if (!ui){ return; }
       // Don't drag graph
       event.stopPropagation();
@@ -3061,7 +3059,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     //
 
     function paste(){
-      if (copied && copied.nodes.length > 0) {
+      if (copied && copied.nodes && copied.nodes.length > 0) {
         // Deselect all
         dataflow.currentGraph.view.$(".dataflow-node").removeClass("ui-selected");
         // Add nodes
@@ -3158,8 +3156,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   var Library = Dataflow.prototype.plugin("library");
 
   Library.initialize = function(dataflow){
- 
-    var library = $('<ul class="dataflow-plugin-library" style="list-style:none; padding:0; margin:15px 0;" />');
+
+    var $container = $('<div class="dataflow-plugin-overflow">');
+    var $library = $('<ul class="dataflow-plugin-library" style="list-style:none; padding:0; margin:15px 0;" />');
+    $container.append($library);
 
     var addNode = function(node, x, y) {
       return function(){
@@ -3214,14 +3214,14 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       var item = $("<li />")
         .append(addButton)
         .append(name);
-      library.append(item);
+      $library.append(item);
     };
 
     var update = function(options){
       options = options ? options : {};
       options.exclude = options.exclude ? options.exclude : ["base", "base-resizable"];
 
-      library.empty();
+      $library.empty();
       _.each(dataflow.nodes, function(node, index){
         if (options.exclude.indexOf(index) === -1) {
           addLibraryItem(node, index);
@@ -3233,7 +3233,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     dataflow.addPlugin({
       id: "library", 
       name: "", 
-      menu: library, 
+      menu: $container, 
       icon: "plus"
     });
 
@@ -3318,7 +3318,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   Log.initialize = function(dataflow){
 
     var $log = $(
-      '<div class="dataflow-plugin-log" style="max-height:400px; overflow:auto;">'+
+      '<div class="dataflow-plugin-log dataflow-plugin-overflow">'+
         '<ol class="loglist"></ol>'+
       '</div>'
     );
@@ -3339,35 +3339,41 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
     Log.add = log;
 
+    var logged = function(message){
+      log("log: " + message);
+    };
+    var nodeAdded = function(graph, node){
+      log("node added: " + node.toString());
+    };
+    var nodeRemoved = function(graph, node){
+      log("node removed: " + node.toString());
+    };
+    var edgeAdded = function(graph, edge){
+      log("edge added: " + edge.toString());
+    };
+    var edgeRemoved = function(graph, edge){
+      log("edge removed: " + edge.toString());
+    };
+
 
 
     Log.listeners = function(boo){
       if (boo) {
         // Log
-        dataflow.on("log", function(message){
-          log("log: " + message);
-        });
+        dataflow.on("log", logged);
 
         // Log graph changes
-        dataflow.on("node:add", function(graph, node){
-          log("node added: " + node.toString());
-        });
-        dataflow.on("node:remove", function(graph, node){
-          log("node removed: " + node.toString());
-        });
-        dataflow.on("edge:add", function(graph, edge){
-          log("edge added: " + edge.toString());
-        });
-        dataflow.on("edge:remove", function(graph, edge){
-          log("edge removed: " + edge.toString());
-        });
+        dataflow.on("node:add", nodeAdded);
+        dataflow.on("node:remove", nodeRemoved);
+        dataflow.on("edge:add", edgeAdded);
+        dataflow.on("edge:remove", edgeRemoved);
       } else {
-        // Custom
-        dataflow.off("log");
-        dataflow.off("node:add");
-        dataflow.off("node:remove");
-        dataflow.off("edge:add");
-        dataflow.off("edge:remove");
+        // Custom for other integration
+        dataflow.off("log", logged);
+        dataflow.off("node:add", nodeAdded);
+        dataflow.off("node:remove", nodeRemoved);
+        dataflow.off("edge:add", edgeAdded);
+        dataflow.off("edge:remove", edgeRemoved);
       }
     };
     Log.listeners(true);
@@ -3787,8 +3793,11 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 });
 require.register("component-indexof/index.js", function(exports, require, module){
+
+var indexOf = [].indexOf;
+
 module.exports = function(arr, obj){
-  if (arr.indexOf) return arr.indexOf(obj);
+  if (indexOf) return arr.indexOf(obj);
   for (var i = 0; i < arr.length; ++i) {
     if (arr[i] === obj) return i;
   }
@@ -5989,13 +5998,13 @@ module.exports = (function(){
       function parse_anychar() {
         var result0;
         
-        if (/^[a-zA-Z0-9 .,#:{}@+?!^=()_\-$*\/\\[\]{}"&`%]/.test(input.charAt(pos))) {
+        if (/^[a-zA-Z0-9 .,#:{}@+?!^=()_\-$*\/\\[\]{}"&`]/.test(input.charAt(pos))) {
           result0 = input.charAt(pos);
           pos++;
         } else {
           result0 = null;
           if (reportFailures === 0) {
-            matchFailed("[a-zA-Z0-9 .,#:{}@+?!^=()_\\-$*\\/\\\\[\\]{}\"&`%]");
+            matchFailed("[a-zA-Z0-9 .,#:{}@+?!^=()_\\-$*\\/\\\\[\\]{}\"&`]");
           }
         }
         return result0;
@@ -6672,7 +6681,7 @@ exports.loadFile = function(file, success) {
       exports.loadJSON(definition, success);
     } catch (_error) {
       e = _error;
-      throw new Error("Failed to load graph " + file + ": " + e.message);
+      throw new Error("Failed to load graph " + file);
     }
     return;
   }
@@ -8223,7 +8232,7 @@ exports.getComponent = function() {
 
 });
 require.register("noflo-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo","description":"Flow-Based Programming environment for JavaScript","keywords":["fbp","workflow","flow"],"repo":"noflo/noflo","version":"0.4.0","dependencies":{"component/emitter":"*","component/underscore":"*","noflo/fbp":"*"},"development":{},"license":"MIT","main":"src/lib/NoFlo.js","scripts":["src/lib/Graph.js","src/lib/InternalSocket.js","src/lib/Port.js","src/lib/ArrayPort.js","src/lib/Component.js","src/lib/AsyncComponent.js","src/lib/LoggingComponent.js","src/lib/ComponentLoader.js","src/lib/NoFlo.js","src/lib/Network.js","src/components/Graph.js"],"json":["component.json"],"noflo":{"components":{"Graph":"src/components/Graph.js"}}}');
+module.exports = JSON.parse('{"name":"noflo","description":"Flow-Based Programming environment for JavaScript","keywords":["fbp","workflow","flow"],"repo":"noflo/noflo","version":"0.3.3","dependencies":{"component/emitter":"*","component/underscore":"*","noflo/fbp":"*"},"development":{},"license":"MIT","main":"src/lib/NoFlo.js","scripts":["src/lib/Graph.js","src/lib/InternalSocket.js","src/lib/Port.js","src/lib/ArrayPort.js","src/lib/Component.js","src/lib/AsyncComponent.js","src/lib/LoggingComponent.js","src/lib/ComponentLoader.js","src/lib/NoFlo.js","src/lib/Network.js","src/components/Graph.js"],"json":["component.json"],"noflo":{"components":{"Graph":"src/components/Graph.js"}}}');
 });
 require.register("noflo-noflo-core/index.js", function(exports, require, module){
 /*
@@ -8816,10 +8825,8 @@ module.exports = JSON.parse('{"name":"noflo-core","description":"NoFlo Essential
 });
 require.register("noflo-noflo-flow/index.js", function(exports, require, module){
 /*
- * This file can be used for general library features of flow.
- *
- * The library features can be made available as CommonJS modules that the
- * components in this project utilize.
+ * This file can be used for general library features that are exposed as CommonJS modules
+ * that the components then utilize
  */
 
 });
@@ -11590,6 +11597,7 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.subscribe = function(element) {
     var draggie;
+    console.log(this.options);
     draggie = this.draggie = new Draggabilly(element, this.options);
     draggie.on('dragStart', this.dragstart);
     draggie.on('dragMove', this.dragmove);
@@ -11598,6 +11606,7 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.setOptions = function(options) {
     var key, value, _results;
+    console.log(options);
     if (typeof options !== "object") {
       throw new Error("Options is not an object");
     }
