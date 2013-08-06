@@ -162,6 +162,7 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
   _.each graph.nodes, (node) ->
     DataflowNoflo.addNode node, graph.dataflowGraph, dataflow, nodesReady
 
+
 DataflowNoflo.getComponent = (name, dataflow) ->
   type = dataflow.node name
   unless type.Model
