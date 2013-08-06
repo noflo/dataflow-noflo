@@ -41,6 +41,40 @@ module.exports = ->
         files:
           './build/dataflow-noflo.min.js': ['./build/dataflow-noflo.js']
 
+    compress:
+      app:
+        options:
+          archive: 'noflo.zip'
+        files: [
+          src: ['build/meemoo-dataflow/libs/*']
+          expand: true
+          dest: '/'
+        ,
+          src: ['build/meemoo-dataflow/fonts/*']
+          expand: true
+          dest: '/'
+        ,
+          src: ['build/meemoo-dataflow/build/default/*']
+          expand: true
+          dest: '/'
+        ,
+          src: ['build/dataflow-noflo.js']
+          expand: true
+          dest: '/'
+        ,
+          src: ['index.html']
+          expand: true
+          dest: '/'
+        ]
+
+    "phonegap-build":
+      app:
+        options:
+          archive: 'noflo.zip'
+          appId: process.env.PHONEGAP_APP_ID
+          user:
+            token: process.env.PHONEGAP_TOKEN
+
     # Simple host
     connect:
       options:
@@ -70,6 +104,10 @@ module.exports = ->
   @loadNpmTasks 'grunt-combine'
   @loadNpmTasks 'grunt-contrib-uglify'
   # @loadNpmTasks 'grunt-contrib-copy'
+  
+  # Grunt plugins used for mobile app building
+  @loadNpmTasks 'grunt-contrib-compress'
+  @loadNpmTasks 'grunt-phonegap-build'
 
   # Grunt plugins used for testing
   @loadNpmTasks 'grunt-contrib-connect'
@@ -83,4 +121,5 @@ module.exports = ->
 
   @registerTask 'dev', ['connect', 'watch']
   @registerTask 'build', ['component', 'component_build', 'combine', 'uglify']
+  @registerTask 'app', ['build', 'compress', 'phonegap-build']
   @registerTask 'default', ['test']
