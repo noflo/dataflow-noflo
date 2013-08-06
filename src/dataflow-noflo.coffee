@@ -99,7 +99,7 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
   # -    
   # Dataflow to Noflo
   # -
-  graph.dataflowGraph.on "node:add", (dfGraph, node) ->
+  dataflow.on "node:add", (dfGraph, node) ->
     return unless dfGraph is graph.dataflowGraph
     unless node.nofloNode?
       node.nofloNode = graph.addNode node.id, node.type,
