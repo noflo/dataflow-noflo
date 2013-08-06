@@ -11744,15 +11744,15 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
     return dataflow.plugins.source.show(JSON.stringify(graph.toJSON(), null, 2));
   });
   graph.on("addNode", function(node) {
-    DataflowNoflo.addNode(node, dataflowGraph, dataflow);
+    DataflowNoflo.addNode(node, graph.dataflowGraph, dataflow);
     return dataflow.plugins.log.add("node added: " + node.id);
   });
   graph.on("addEdge", function(edge) {
-    DataflowNoflo.addEdge(edge, dataflowGraph, dataflow);
+    DataflowNoflo.addEdge(edge, graph.dataflowGraph, dataflow);
     return dataflow.plugins.log.add("edge added.");
   });
   graph.on("addInitial", function(iip) {
-    DataflowNoflo.addInitial(iip, dataflowGraph, dataflow);
+    DataflowNoflo.addInitial(iip, graph.dataflowGraph, dataflow);
     return dataflow.plugins.log.add("IIP added: " + JSON.stringify(iip));
   });
   graph.on("removeNode", function(node) {

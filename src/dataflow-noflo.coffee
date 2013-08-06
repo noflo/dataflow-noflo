@@ -78,13 +78,13 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
   # Noflo to Dataflow
   # -
   graph.on "addNode", (node) ->
-    DataflowNoflo.addNode node, dataflowGraph, dataflow
+    DataflowNoflo.addNode node, graph.dataflowGraph, dataflow
     dataflow.plugins.log.add "node added: " + node.id
   graph.on "addEdge", (edge) ->
-    DataflowNoflo.addEdge edge, dataflowGraph, dataflow
+    DataflowNoflo.addEdge edge, graph.dataflowGraph, dataflow
     dataflow.plugins.log.add "edge added."
   graph.on "addInitial", (iip) ->
-    DataflowNoflo.addInitial iip, dataflowGraph, dataflow
+    DataflowNoflo.addInitial iip, graph.dataflowGraph, dataflow
     dataflow.plugins.log.add "IIP added: " + JSON.stringify(iip)
   graph.on "removeNode", (node) ->
     if node.dataflowNode?
