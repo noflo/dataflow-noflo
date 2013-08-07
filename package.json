@@ -29,7 +29,9 @@
     "grunt-contrib-watch": "~0.3.1",
     "component-json": "*",
     "grunt-component": "~0.1.2",
-    "grunt-combine": "~0.8.3"
+    "grunt-combine": "~0.8.3",
+    "grunt-contrib-compress": "~0.5.2",
+    "grunt-phonegap-build": "git://github.com/centralway/grunt-phonegap-build.git"
   },
   "scripts": {
     "pretest": "./node_modules/.bin/coffeelint -r components",
