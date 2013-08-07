@@ -65,6 +65,10 @@ module.exports = ->
           src: ['index.html']
           expand: true
           dest: '/'
+        ,
+          src: ['config.xml']
+          expand: true
+          dest: '/'
         ]
 
     "phonegap-build":
