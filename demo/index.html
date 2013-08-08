@@ -3,7 +3,16 @@
   <head>
     <meta charset="utf-8">
 
-    <title>Dataflow-NoFlo demo</title>
+    <title>Dataflow-NoFlo-Draggabilly demo</title>
+
+    <!-- Draggabilly and dependencies -->
+    <script src="draggabilly/bower_components/eventEmitter/EventEmitter.js"></script>
+    <script src="draggabilly/bower_components/eventie/eventie.js"></script>
+    <script src="draggabilly/bower_components/get-style-property/get-style-property.js"></script>
+    <script src="draggabilly/bower_components/classie/classie.js"></script>
+    <script src="draggabilly/bower_components/get-size/get-size.js"></script>
+    <script src="draggabilly/bower_components/draggabilly/draggabilly.js"></script>
+    <script src="draggabilly/dist/draggabilly.js"></script>
 
     <!-- Dataflow Libraries -->
     <script src="../build/meemoo-dataflow/libs/jquery.js"></script>
@@ -24,6 +33,39 @@
       body {
         background-color: hsl(230,10%,85%);
       }
+      .area {
+        width: 400px;
+        height: 300px;
+        background-color: hsla(220,10%,90%, 0.75);
+        border: 1px hsl(220,10%,95%) solid;
+        box-shadow:           
+          inset 0 1px 4px hsla(220,20%,20%,.4);
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        z-index: 2;
+      }
+      .draggable {
+        -webkit-user-drag: element;
+        cursor: move;
+        width: 100px;
+        height: 100px;
+        border-radius: 50px;
+        background-color:hsl(220,20%,20%);
+        /*border: solid 3px hsl(220,20%,95%);*/
+        box-shadow: 
+                0 -1px 0px hsl(220,100%,100%),
+                0 1px 1px hsla(220,20%,0%,.2),
+                0 3px 8px hsla(220,20%,0%,.1);
+      }
+      .draggable.is-dragging {
+
+        box-shadow: 
+                0 -1px 0px hsl(220,100%,100%),
+                0 1px 1px hsla(220,20%,0%,.1),
+                0 8px 13px hsla(220,20%,0%,.2);
+        
+      }
       
       #noflo-ui {
         position: absolute;
@@ -38,57 +80,39 @@
     </style>
   </head>
   <body>
-
-    <div id="noflo-ui"></div>
+    <div id="noflo-ui">
+    </div>
+    <div class="area" title=".area">
+      <img class="draggable" title=".draggable" src="http://meemoo.org/hack-our-apps/shots/recursive.png" >
+    </div>
 
     <script>
     window.onload = function () {
-
       // Dependencies
       var Dataflow = require('/meemoo-dataflow').Dataflow;
       require('/dataflow-noflo');
       var noflo = require('noflo');
 
-      // Start dataflow
-      var dataflow = new Dataflow({appendTo:"#noflo-ui"});
+      // Load graph JSON
+      $.getJSON('draggabilly.json', function (graphDefinition) {
+        noflo.graph.loadJSON(graphDefinition, function (graph) {
+          window.graph = graph;
+          // Which component to start with when loading components
+          graph.baseDir = '/dataflow-noflo';
 
-      var nfGraph;
+          var dataflow = new Dataflow({appendTo:"#noflo-ui"});
 
-      var registerGraph = function (nfGraph) {
-        // Dataflow-Noflo connection
-        dataflow.plugins.noflo.registerGraph(nfGraph, dataflow, function(dfGraph){
+          // Dataflow-Noflo connection
+          dataflow.plugins.noflo.registerGraph(graph, dataflow);
+      
           // Run the graph
-          noflo.createNetwork(nfGraph, function (network) {
-            nfGraph.on('addInitial', function () {
+          noflo.createNetwork(graph, function (network) {
+            graph.on('addInitial', function () {
               network.sendInitials();
             });
           });
-          // Show source
-          nfGraph.dataflowGraph.trigger("change");
-        }, true);
-      };
-
-      var loadBlank = function () {
-        nfGraph = noflo.graph.createGraph("NoFlo");
-        nfGraph.baseDir = "/dataflow-noflo";
-        registerGraph(nfGraph);
-      };
-
-      if ( location.hash.length > 1 ) {
-        var json = location.hash.split("#")[1] + ".json";
-        // Load graph from JSON
-        $.getJSON(json, function (graphDefinition) {
-          nfGraph = noflo.graph.loadJSON(graphDefinition, function (graph) {
-            registerGraph(graph);
-          });
         });
-
-      } else {
-        loadBlank();
-      }
-
-
-  
+      });
     };
     </script>
   </body>

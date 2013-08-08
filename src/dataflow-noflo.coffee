@@ -22,6 +22,13 @@ DataflowNoflo.initialize = (dataflow) ->
   # Plugin: log
   dataflow.plugins.log.listeners false
 
+  # Overwrite loadGraph to sync with NoFlo
+  # dataflow.loadGraph = (graph) ->
+  #   g = new noflo.Graph graph
+  #   DataflowNoflo.registerGraph g, dataflow
+  #   g
+
+
 DataflowNoflo.aliases = {}
 
 DataflowNoflo.registerGraph = (graph, dataflow, callback, main = true) ->
@@ -254,8 +261,3 @@ DataflowNoflo.registerComponent = (name, component, ready) ->
     nofloComponent: component
   newType.View = base.View.extend()
   do ready if ready
-
-# Dataflow::loadGraph = (graph) ->
-#   g = new noflo.Graph graph
-#   DataflowNoflo.registerGraph g, dataflow
-#   g
