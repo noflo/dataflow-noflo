@@ -4,60 +4,88 @@
   },
   "exports": [],
   "processes": {
+    "split": {
+      "component": "core/Split",
+      "metadata": {
+        "x": 154,
+        "y": 475
+      }
+    },
+    "makeMinutesDeg": {
+      "component": "math/Multiply",
+      "metadata": {
+        "x": 630,
+        "y": 367
+      }
+    },
+    "makeHoursDeg": {
+      "component": "math/Multiply",
+      "metadata": {
+        "x": 638,
+        "y": 485
+      }
+    },
+    "merge": {
+      "component": "core/Merge",
+      "metadata": {
+        "x": 867,
+        "y": 378
+      }
+    },
     "out": {
       "component": "core/Output",
       "metadata": {
-        "x": 873.796875,
+        "x": 873,
         "y": 244
       }
     },
     "secondTick": {
       "component": "core/RunInterval",
       "metadata": {
-        "x": 157.796875,
-        "y": 132.5
+        "x": 157,
+        "y": 132
       }
     },
     "sendStringNow": {
       "component": "strings/SendString",
       "metadata": {
-        "x": 148.796875,
-        "y": 242.5
+        "x": 148,
+        "y": 242
       }
     },
     "createDate": {
       "component": "objects/CreateDate",
       "metadata": {
-        "x": 155.796875,
-        "y": 362.5
+        "x": 155,
+        "y": 362
       }
     },
     "getSeconds": {
       "component": "objects/CallMethod",
       "metadata": {
-        "x": 410.796875,
-        "y": 246.5
+        "x": 410,
+        "y": 246
       }
     },
-    "timesSix": {
+    "makeSecondsDeg": {
       "component": "math/Multiply",
       "metadata": {
-        "x": 628.796875,
-        "y": 243.5
+        "x": 628,
+        "y": 243
       }
     },
     "getMinutes": {
       "component": "objects/CallMethod",
       "metadata": {
-        "x": 412.796875,
-        "y": 372.5
+        "x": 412,
+        "y": 372
       }
     },
     "getHours": {
       "component": "objects/CallMethod",
       "metadata": {
-        "x": 412.796875,
-        "y": 486.5
+        "x": 412,
+        "y": 486
       }
     }
   },
@@ -84,41 +112,139 @@
     },
     {
       "src": {
-        "process": "createDate",
-        "port": "out"
-      },
-      "tgt": {
-        "process": "getSeconds",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 1
-      }
-    },
-    {
-      "src": {
-        "process": "timesSix",
-        "port": "product"
-      },
-      "tgt": {
-        "process": "out",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 1
-      }
-    },
-    {
-      "src": {
         "process": "getSeconds",
         "port": "out"
       },
       "tgt": {
-        "process": "timesSix",
+        "process": "makeSecondsDeg",
         "port": "multiplicand"
       },
       "metadata": {
         "route": 1
+      }
+    },
+    {
+      "src": {
+        "process": "createDate",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "split",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "getMinutes",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 2
+      }
+    },
+    {
+      "src": {
+        "process": "merge",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "out",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "makeSecondsDeg",
+        "port": "product"
+      },
+      "tgt": {
+        "process": "merge",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 1
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "getSeconds",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 1
+      }
+    },
+    {
+      "src": {
+        "process": "getMinutes",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "makeMinutesDeg",
+        "port": "multiplicand"
+      },
+      "metadata": {
+        "route": 2
+      }
+    },
+    {
+      "src": {
+        "process": "makeMinutesDeg",
+        "port": "product"
+      },
+      "tgt": {
+        "process": "merge",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 2
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "getHours",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 3
+      }
+    },
+    {
+      "src": {
+        "process": "getHours",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "makeHoursDeg",
+        "port": "multiplicand"
+      },
+      "metadata": {
+        "route": 3
+      }
+    },
+    {
+      "src": {
+        "process": "makeHoursDeg",
+        "port": "product"
+      },
+      "tgt": {
+        "process": "merge",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 3
       }
     },
     {
@@ -145,7 +271,21 @@
     {
       "data": 6,
       "tgt": {
-        "process": "timesSix",
+        "process": "makeSecondsDeg",
+        "port": "multiplier"
+      }
+    },
+    {
+      "data": 6,
+      "tgt": {
+        "process": "makeMinutesDeg",
+        "port": "multiplier"
+      }
+    },
+    {
+      "data": 30,
+      "tgt": {
+        "process": "makeHoursDeg",
         "port": "multiplier"
       }
     }
