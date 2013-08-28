@@ -20,6 +20,7 @@
     "noflo/noflo-strings": "*",
     "noflo/noflo-dom": "*",
     "noflo/noflo-physics": "*",
+    "noflo/noflo-math": "*",
     "d4tocchini/noflo-draggabilly": "*"
   },
   "scripts": [

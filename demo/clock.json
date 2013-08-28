@@ -1,0 +1,153 @@
+{
+  "properties": {
+    "name": "NoFlo"
+  },
+  "exports": [],
+  "processes": {
+    "out": {
+      "component": "core/Output",
+      "metadata": {
+        "x": 873.796875,
+        "y": 244
+      }
+    },
+    "secondTick": {
+      "component": "core/RunInterval",
+      "metadata": {
+        "x": 157.796875,
+        "y": 132.5
+      }
+    },
+    "sendStringNow": {
+      "component": "strings/SendString",
+      "metadata": {
+        "x": 148.796875,
+        "y": 242.5
+      }
+    },
+    "createDate": {
+      "component": "objects/CreateDate",
+      "metadata": {
+        "x": 155.796875,
+        "y": 362.5
+      }
+    },
+    "getSeconds": {
+      "component": "objects/CallMethod",
+      "metadata": {
+        "x": 410.796875,
+        "y": 246.5
+      }
+    },
+    "timesSix": {
+      "component": "math/Multiply",
+      "metadata": {
+        "x": 628.796875,
+        "y": 243.5
+      }
+    },
+    "getMinutes": {
+      "component": "objects/CallMethod",
+      "metadata": {
+        "x": 412.796875,
+        "y": 372.5
+      }
+    },
+    "getHours": {
+      "component": "objects/CallMethod",
+      "metadata": {
+        "x": 412.796875,
+        "y": 486.5
+      }
+    }
+  },
+  "connections": [
+    {
+      "src": {
+        "process": "secondTick",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "sendStringNow",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "sendStringNow",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "createDate",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "createDate",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "getSeconds",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 1
+      }
+    },
+    {
+      "src": {
+        "process": "timesSix",
+        "port": "product"
+      },
+      "tgt": {
+        "process": "out",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 1
+      }
+    },
+    {
+      "src": {
+        "process": "getSeconds",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "timesSix",
+        "port": "multiplicand"
+      },
+      "metadata": {
+        "route": 1
+      }
+    },
+    {
+      "data": "getSeconds",
+      "tgt": {
+        "process": "getSeconds",
+        "port": "method"
+      }
+    },
+    {
+      "data": "now",
+      "tgt": {
+        "process": "sendStringNow",
+        "port": "string"
+      }
+    },
+    {
+      "data": 1000,
+      "tgt": {
+        "process": "secondTick",
+        "port": "interval"
+      }
+    },
+    {
+      "data": 6,
+      "tgt": {
+        "process": "timesSix",
+        "port": "multiplier"
+      }
+    }
+  ]
+}
