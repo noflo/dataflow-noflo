@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-08-26 (6:13:39 PM EDT)
+/*! dataflow.js - v0.0.7 - 2013-08-06 (2:43:58 PM EDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -892,8 +892,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       nodes: [],
       edges: [],
       panX: 0,
-      panY: 0,
-      zoom: 1
+      panY: 0
     },
     initialize: function() {
       this.dataflow = this.get("dataflow");
@@ -1357,37 +1356,27 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   var Node = Dataflow.prototype.module("node");
   var Edge = Dataflow.prototype.module("edge");
 
-  var minZoom = 0.20;
-  var maxZoom = 1.1;
-
-  var cssZoomSupported = document.createElement("div").style.hasOwnProperty("zoom");
-
+  var minZoom = 0.25;
+  var maxZoom = 2.5;
+ 
   var template = 
-    '<div class="dataflow-graph-panzoom">'+
-      '<div class="dataflow-graph zoom-normal">'+
-        '<div class="dataflow-edges">'+
-          '<svg class="dataflow-svg-edges" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="800" height="800"></svg>'+
-        '</div>'+
-        '<div class="dataflow-nodes" />'+
-      '</div>'+
+    '<div class="dataflow-edges">'+
+      '<svg class="dataflow-svg-edges" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="800" height="800"></svg>'+
     '</div>'+
+    '<div class="dataflow-nodes" />'+
     '<div class="dataflow-graph-controls">'+
       '<button class="dataflow-graph-gotoparent"><i class="icon-chevron-left"></i> back to parent</button>'+
     '</div>';
 
   Graph.View = Backbone.View.extend({
     template: _.template(template),
-    className: "dataflow-g",
+    className: "dataflow-graph zoom-normal",
     events: {
-      "click .dataflow-graph": "deselect",
-      "dragstart .dataflow-graph-panzoom": "panStart",
-      "drag .dataflow-graph-panzoom": "pan",
-      "dragstop .dataflow-graph-panzoom": "panStop",
+      "click": "deselect",
       "click .dataflow-graph-gotoparent": "gotoParent",
-      "mousewheel": "mouseWheel"
-      // ".dataflow-graph transformstart": "pinchStart",
-      // ".dataflow-graph transform": "pinch",
-      // ".dataflow-graph transformend": "pinchEnd"
+      "dragstart": "dragStart",
+      "drag": "drag",
+      "dragstop": "dragStop"
     },
     initialize: function() {
       // Graph container
@@ -1413,7 +1402,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         this.$(".dataflow-graph-controls").hide();
       }
 
-      this.$(".dataflow-graph-panzoom").draggable({
+      this.$el.draggable({
         helper: function(){
           var h = $("<div>");
           this.model.dataflow.$el.append(h);
@@ -1421,68 +1410,38 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         }.bind(this)
       });
 
-      // Cache the graph div el
-      this.$graphEl = this.$(".dataflow-graph");
-      this.graphEl = this.$(".dataflow-graph")[0];
-
       // Default 3D transform
-      this.$graphEl.css({
+      this.$el.css({
         transform: "translate3d(0, 0, 0) " +
                    "scale3d(1, 1, 1) ",
         transformOrigin: "left top"
       });
 
+      this.pageX = this.$el.position();
+
+      // Handle zooming and scrolling
+      this.state = this.model.dataflow.get('state');
+
       this.bindInteraction();
     },
-    panStartOffset: null,
-    panStart: function (event, ui) {
-      if (!ui) { return; }
-      this.panStartOffset = ui.offset;
+    dragStart: function (event, ui) {
     },
-    pan: function (event, ui) {
+    drag: function (event, ui) {
       if (!ui) { return; }
-      var scale = this.model.get('zoom');
-      var deltaX = ui.offset.left - this.panStartOffset.left;
-      var deltaY = ui.offset.top - this.panStartOffset.top;
-      this.$(".dataflow-graph").css({
-        transform: "translate3d("+deltaX/scale+"px, "+deltaY/scale+"px, 0)"
+      var scale = this.state.get('zoom');
+      this.$el.css({
+        transform: "translate3d("+ui.offset.left/scale+"px, "+ui.offset.top/scale+"px, 0)"
       });
     },
-    panStop: function (event, ui) {
-      this.$(".dataflow-graph").css({
+    dragStop: function (event, ui) {
+      this.$el.css({
         transform: "translate3d(0, 0, 0)"
       });
-      var scale = this.model.get('zoom');
-      var deltaX = ui.offset.left - this.panStartOffset.left;
-      var deltaY = ui.offset.top - this.panStartOffset.top;
+      var scale = this.state.get('zoom');
       this.model.set({
-        panX: this.model.get("panX") + deltaX/scale,
-        panY: this.model.get("panY") + deltaY/scale
+        panX: this.model.get("panX") + ui.offset.left/scale,
+        panY: this.model.get("panY") + ui.offset.top/scale
       });
-    },
-    tempPanX: 0,
-    tempPanY: 0,
-    setPanDebounce: _.debounce(function () {
-      // Moves the graph back to 0,0 and changes pan, which will rerender wires
-      this.$(".dataflow-graph").css({
-        transform: "translate3d(0, 0, 0)"
-      });
-      this.model.set({
-        panX: this.model.get("panX") + this.tempPanX,
-        panY: this.model.get("panY") + this.tempPanY
-      });
-      this.tempPanX = 0;
-      this.tempPanY = 0;
-    }, 250),
-    mouseWheel: function (event) {
-      event.preventDefault();
-      var oe = event.originalEvent;
-      this.tempPanX += oe.wheelDeltaX/6;
-      this.tempPanY += oe.wheelDeltaY/6;
-      this.$(".dataflow-graph").css({
-        transform: "translate3d("+this.tempPanX+"px, "+this.tempPanY+"px, 0)"
-      });
-      this.setPanDebounce();
     },
     gotoParent: function () {
       var parentNode = this.model.get("parentNode");
@@ -1491,100 +1450,115 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
     },
     bindInteraction: function () {
-      this.bindZoom();
-      this.bindScroll();
+      var state = this.model.dataflow.get('state');
+      this.bindZoom(state);
+      this.bindScroll(state);
     },
-    bindZoom: function () {
+    bindZoom: function (state) {
       if (!window.Hammer) {
         return;
       }
-      var currentZoom, startX, startY, originX, originY, scale, deltaX, deltaY, distance_to_origin_x, distance_to_origin_y;
+      if (!state.has('zoom')) {
+        // Initial zoom level
+        // TODO: calculate level where whole graph fits
+        state.set('zoom', 1);
+      }
+      var currentZoom, startX, startY, originX, originY, scale, deltaX, deltaY;
       var self = this;
-      Hammer( this.$(".dataflow-graph-panzoom")[0] )
-        .on('transformstart', function (event) {
-          currentZoom = self.model.get('zoom');
-          startX = event.gesture.center.pageX;
-          startY = event.gesture.center.pageY;
-          originX = startX/currentZoom;
-          originY = startY/currentZoom;
-          var graphOffset = self.$el.offset();
-          distance_to_origin_x = originX - graphOffset.left;
-          distance_to_origin_y = originY - graphOffset.top;
-          self.$graphEl.css({
-            transformOrigin: originX+"px "+originY+"px"
-            // transformOrigin: startX+"px "+startY+"px"
-          });
-        })
-        .on('transform', function (event) {
-          scale = Math.max(minZoom/currentZoom, Math.min(event.gesture.scale, maxZoom/currentZoom));
-          deltaX = (event.gesture.center.pageX - startX) / currentZoom;
-          deltaY = (event.gesture.center.pageY - startY) / currentZoom;
-          self.$graphEl.css({
-            transform: "translate3d("+deltaX+"px,"+deltaY+"px, 0) " +
-                       "scale3d("+scale+","+scale+", 1) "
-          });
-        })
-        .on('transformend', function (event) {
-          // Reset 3D transform
-          self.$graphEl.css({
-            transform: "translate3d(0, 0, 0) " +
-                       "scale3d(1, 1, 1) "
-          });
-          // Zoom
-          var zoom = currentZoom * scale;
-          zoom = Math.max(minZoom, Math.min(zoom, maxZoom));
-          self.model.set('zoom', zoom);
-          distance_to_origin_x *= zoom;
-          distance_to_origin_y *= zoom;
-          self.model.set({
-            panX: self.model.get("panX") + deltaX,
-            panY: self.model.get("panY") + deltaY
-          });
-          console.log(self.model.attributes);
+      Hammer(this.el).on('transformstart', function (event) {
+        currentZoom = state.get('zoom');
+        startX = event.gesture.center.pageX;
+        startY = event.gesture.center.pageY;
+        originX = startX/currentZoom;
+        originY = startY/currentZoom;
+        self.$el.css({
+          transformOrigin: originX+"px "+originY+"px"
+          // transformOrigin: startX+"px "+startY+"px"
         });
+      });
+      Hammer(this.el).on('transform', function (event) {
+        scale = Math.max(minZoom/currentZoom, Math.min(event.gesture.scale, maxZoom/currentZoom));
+        deltaX = (event.gesture.center.pageX - startX) / currentZoom;
+        deltaY = (event.gesture.center.pageY - startY) / currentZoom;
+        self.$el.css({
+          transform: "translate3d("+deltaX+"px,"+deltaY+"px, 0) " +
+                     "scale3d("+scale+","+scale+", 1) "
+        });
+      });
+      Hammer(this.el).on('transformend', function (event) {
+        // Reset 3D transform
+        self.$el.css({
+          transform: "translate3d(0, 0, 0) " +
+                     "scale3d(1, 1, 1) "
+        });
+        // Zoom
+        var zoom = currentZoom * scale;
+        zoom = Math.max(minZoom, Math.min(zoom, maxZoom));
+        state.set('zoom', zoom);
+        // var scaleD = scale - currentZoom;
+        var width = self.$el.width();
+        var height = self.$el.height();
+        // console.log("panX", self.model.get("panX") );
+        // console.log("deltaX", deltaX); 
+        // console.log("width", width); 
+        // console.log("currentZoom", currentZoom); 
+        // console.log("scale", scale);
+        // console.log("zoom", zoom);
+        // console.log("-===============-");
+        //
+        // TODO : fix origin difference bump
+        self.model.set({
+          panX: self.model.get("panX") + deltaX,
+          panY: self.model.get("panY") + deltaY
+        });
+      });
 
       var onZoom = function () {
-        var z = self.model.get('zoom');
+        var z = state.get('zoom');
         var lastClass = self.zoomClass;
         self.zoomClass = z < 0.5 ? "zoom-tiny" : (z < 0.8 ? "zoom-small" : (z < 1.3 ? "zoom-normal" : "zoom-big"));
-        self.$graphEl
+        self.$el
           .removeClass(lastClass)
           .addClass(self.zoomClass);
-        self.graphEl.style.zoom = self.model.get('zoom');
+        self.el.style.zoom = state.get('zoom');
       };
 
-      this.model.on('change:zoom', onZoom);
+      state.on('change:zoom', onZoom);
 
-      // Initial zoom this.model from localStorage
-      if (this.model.get('zoom') !== 1) {
+      // Initial zoom state from localStorage
+      if (state.get('zoom') !== 1) {
         onZoom();
       }
     },
     zoomClass: 1,
     zoomIn: function () {
-      var currentZoom = this.model.get('zoom');
+      var currentZoom = this.state.get('zoom');
       var zoom = currentZoom * 0.9;
       zoom = Math.max(minZoom, zoom); 
       if (zoom !== currentZoom) {
-        this.model.set('zoom', zoom);
+        this.state.set('zoom', zoom);
       }
     },
     zoomOut: function () {
-      var currentZoom = this.model.get('zoom');
+      var currentZoom = this.state.get('zoom');
       var zoom = currentZoom * 1.1;
       zoom = Math.min(maxZoom, zoom); 
       if (zoom !== currentZoom) {
-        this.model.set('zoom', zoom);
+        this.state.set('zoom', zoom);
       }
     },
     zoomCenter: function () {
-      var currentZoom = this.model.get('zoom');
+      var currentZoom = this.state.get('zoom');
       var zoom = 1;
       if (zoom !== currentZoom) {
-        this.model.set('zoom', 1);
+        this.state.set('zoom', 1);
       }
     },
-    bindScroll: function () {
+    bindScroll: function (state) {
+      // this.el.addEventListener('scroll', function (event) {
+      //   state.set('scrollY', this.scrollTop);
+      //   state.set('scrollX', this.scrollLeft);
+      // });
     },
     render: function() {
       // HACK to get them to show correct positions on load
@@ -1817,7 +1791,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       event.stopPropagation();
 
       // Current zoom
-      zoom = this.model.parentGraph.get('zoom');
+      zoom = this.model.parentGraph.dataflow.get('state').get('zoom');
 
       // Make helper and save start position of all other selected
       var self = this;
@@ -1944,29 +1918,15 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       if (event) {
         event.stopPropagation();
       }
-      var toggle = false;
-      if (event && (event.ctrlKey || event.metaKey)) {
-        toggle = true;
-      } else {
-        deselectOthers = true;
-      }
       // De/select
       if (deselectOthers) {
         this.model.parentGraph.view.$(".ui-selected").removeClass("ui-selected");
       }
-      if (toggle) {
-        this.$el.toggleClass("ui-selected");
-      } else {
-        this.$el.addClass("ui-selected");
-      }
+      this.$el.addClass("ui-selected");
       this.bringToTop();
       // Fade / highlight
       this.model.parentGraph.view.fade();
-      if (this.$el.hasClass("ui-selected")) {
-        this.unfade();
-      } else {
-        this.fade();
-      }
+      this.unfade();
       // Trigger
       this.model.trigger("select");
       this.model.parentGraph.trigger("selectionChanged");
@@ -2021,8 +1981,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     '<label class="dataflow-port-label in" title="<%= description %>">'+
       '<%= label %>'+
     '</label>';  
-
-  var zoom = 1;
  
   Input.View = Backbone.View.extend({
     template: _.template(template),
@@ -2254,8 +2212,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
       var graphSVGElement = this.model.parentNode.parentGraph.view.$('.dataflow-svg-edges')[0];
       graphSVGElement.appendChild(this.previewEdgeNewView.el);
-
-      zoom = this.model.parentNode.parentGraph.get('zoom');
     },
     newEdgeDrag: function(event, ui){
       if (!this.previewEdgeNewView || !ui) {
@@ -2264,8 +2220,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // Don't drag node
       event.stopPropagation();
 
-      ui.position.top = event.clientY / zoom;
-      ui.position.left = event.clientX / zoom;
+      var state = this.model.parentNode.parentGraph.dataflow.get('state');
+      ui.position.top = event.clientY / state.get('zoom');
+      ui.position.left = event.clientX / state.get('zoom');
       var df = this.model.parentNode.parentGraph.view.el;
       ui.position.left += df.scrollLeft;
       ui.position.top += df.scrollTop;
@@ -2331,8 +2288,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           });
           var graphSVGElement = this.model.parentNode.parentGraph.view.$('.dataflow-svg-edges')[0];
           graphSVGElement.appendChild(this.previewEdgeChangeView.el);
-          
-          zoom = this.model.parentNode.parentGraph.get('zoom');
         }
       }
     },
@@ -2450,8 +2405,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     '<span class="dataflow-port-hole out" title="drag to make new wire"></span>'+
     '<span class="dataflow-port-plug out" title="drag to edit wire"></span>';
 
-  var zoom = 1;
-
   Output.View = Backbone.View.extend({
     template: _.template(template),
     tagName: "li",
@@ -2528,9 +2481,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       });
       var graphSVGElement = this.model.parentNode.parentGraph.view.$('.dataflow-svg-edges')[0];
       graphSVGElement.appendChild(this.previewEdgeView.el);
-
-      zoom = this.model.parentNode.parentGraph.get('zoom');
-
     },
     newEdgeDrag: function(event, ui){
       // Don't drag node
@@ -2538,8 +2488,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       if (!this.previewEdgeView || !ui) {
         return;
       }
-      ui.position.top = event.clientY / zoom;
-      ui.position.left = event.clientX / zoom;
+      var state = this.model.parentNode.parentGraph.dataflow.get('state');
+      ui.position.top = event.clientY / state.get('zoom');
+      ui.position.left = event.clientX / state.get('zoom');
       var df = this.model.parentNode.parentGraph.view.el;
       ui.position.left += df.scrollLeft;
       ui.position.top += df.scrollTop;
@@ -2604,8 +2555,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           });
           var graphSVGElement = this.model.parentNode.parentGraph.view.$('.dataflow-svg-edges')[0];
           graphSVGElement.appendChild(this.previewEdgeChangeView.el);
-
-          zoom = this.model.parentNode.parentGraph.get('zoom');
         }
       }
     },
@@ -2802,12 +2751,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       var source = this.model.source;
       var target = this.model.target;
       var dataflowParent, graphPos;
-      // TODO: match zoom
-      // if (previewPosition) {
-      //   var zoom = this.model.parentGraph.get('zoom');
-      //   previewPosition.left /= zoom;
-      //   previewPosition.top /= zoom;
-      // }
       if (source) {
         this.positions.from = source.view.holePosition();
       }
@@ -2832,10 +2775,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         };
       }
       // No half-pixels
-      // this.positions.from.left = Math.floor(this.positions.from.left);
-      // this.positions.from.top = Math.floor(this.positions.from.top);
-      // this.positions.to.left = Math.floor(this.positions.to.left);
-      // this.positions.to.top = Math.floor(this.positions.to.top);
+      this.positions.from.left = Math.floor(this.positions.from.left);
+      this.positions.from.top = Math.floor(this.positions.from.top);
+      this.positions.to.left = Math.floor(this.positions.to.left);
+      this.positions.to.top = Math.floor(this.positions.to.top);
       // Make and apply the path
       var pathD = this.edgePath(this.positions);
       this.elEdge.setAttribute("d", pathD);
@@ -3051,9 +2994,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     //
 
     function selectAll(){
-      dataflow.currentGraph.view.$(".dataflow-node")
-        .addClass("ui-selected")
-        .removeClass("fade");
+      dataflow.currentGraph.view.$(".dataflow-node").addClass("ui-selected");
     }
     buttons.children(".selectall").click(selectAll);
     Edit.selectAll = selectAll;
@@ -3223,7 +3164,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     var addNode = function(node, x, y) {
       return function(){
         // Deselect others
-        dataflow.currentGraph.view.$(".dataflow-node").removeClass("ui-selected");
+        dataflow.currentGraph.view.$(".node").removeClass("ui-selected");
 
         // Current zoom
         zoom = dataflow.get('state').get('zoom');
@@ -3261,7 +3202,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         .attr("title", "click or drag")
         .draggable({
           helper: function(){
-            var helper = $('<div class="dataflow-node helper"><div class="dataflow-node-title">'+name+'</div></div>');
+            var helper = $('<div class="node helper" style="width:100px; height:100px">'+name+'</div>');
             dataflow.$el.append(helper);
             return helper;
           },
@@ -3852,11 +3793,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
 });
 require.register("component-indexof/index.js", function(exports, require, module){
-
-var indexOf = [].indexOf;
-
 module.exports = function(arr, obj){
-  if (indexOf) return arr.indexOf(obj);
+  if (arr.indexOf) return arr.indexOf(obj);
   for (var i = 0; i < arr.length; ++i) {
     if (arr[i] === obj) return i;
   }
@@ -6057,13 +5995,13 @@ module.exports = (function(){
       function parse_anychar() {
         var result0;
         
-        if (/^[a-zA-Z0-9 .,#:{}@+?!^=()_\-$*\/\\[\]{}"&`]/.test(input.charAt(pos))) {
+        if (/^[a-zA-Z0-9 .,#:{}@+?!^=()_\-$*\/\\[\]{}"&`%]/.test(input.charAt(pos))) {
           result0 = input.charAt(pos);
           pos++;
         } else {
           result0 = null;
           if (reportFailures === 0) {
-            matchFailed("[a-zA-Z0-9 .,#:{}@+?!^=()_\\-$*\\/\\\\[\\]{}\"&`]");
+            matchFailed("[a-zA-Z0-9 .,#:{}@+?!^=()_\\-$*\\/\\\\[\\]{}\"&`%]");
           }
         }
         return result0;
@@ -8884,8 +8822,10 @@ module.exports = JSON.parse('{"name":"noflo-core","description":"NoFlo Essential
 });
 require.register("noflo-noflo-flow/index.js", function(exports, require, module){
 /*
- * This file can be used for general library features that are exposed as CommonJS modules
- * that the components then utilize
+ * This file can be used for general library features of flow.
+ *
+ * The library features can be made available as CommonJS modules that the
+ * components in this project utilize.
  */
 
 });
@@ -11493,6 +11433,65 @@ exports.getComponent = function() {
 require.register("noflo-noflo-dom/component.json", function(exports, require, module){
 module.exports = JSON.parse('{"name":"noflo-dom","description":"Document Object Model components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-dom","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/GetElement.js","components/ListenDrag.js","components/ListenMouse.js","components/ListenScroll.js","components/ListenTouch.js","components/MoveElement.js","components/ReadHtml.js","components/WriteHtml.js","index.js"],"json":["component.json"],"noflo":{"components":{"GetElement":"components/GetElement.js","ListenDrag":"components/ListenDrag.js","ListenMouse":"components/ListenMouse.js","ListenScroll":"components/ListenScroll.js","ListenTouch":"components/ListenTouch.js","MoveElement":"components/MoveElement.js","WriteHtml":"components/WriteHtml.js","ReadHtml":"components/ReadHtml.js"}}}');
 });
+require.register("noflo-noflo-css/index.js", function(exports, require, module){
+/*
+ * This file can be used for general library features that are exposed as CommonJS modules
+ * that the components then utilize
+ */
+
+});
+require.register("noflo-noflo-css/components/MoveElement.js", function(exports, require, module){
+var MoveElement, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+MoveElement = (function(_super) {
+  __extends(MoveElement, _super);
+
+  MoveElement.prototype.description = 'Change the coordinates of a DOM element';
+
+  function MoveElement() {
+    var _this = this;
+    this.element = null;
+    this.inPorts = {
+      element: new noflo.Port('object'),
+      x: new noflo.Port('number'),
+      y: new noflo.Port('number'),
+      z: new noflo.Port('number')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.element = element;
+    });
+    this.inPorts.x.on('data', function(x) {
+      return _this.setPosition('left', "" + x + "px");
+    });
+    this.inPorts.y.on('data', function(y) {
+      return _this.setPosition('top', "" + y + "px");
+    });
+    this.inPorts.z.on('data', function(z) {
+      return _this.setPosition('zIndex', z);
+    });
+  }
+
+  MoveElement.prototype.setPosition = function(attr, value) {
+    this.element.style.position = 'absolute';
+    return this.element.style[attr] = value;
+  };
+
+  return MoveElement;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new MoveElement;
+};
+
+});
+require.register("noflo-noflo-css/component.json", function(exports, require, module){
+module.exports = JSON.parse('{"name":"noflo-css","description":"Cascading Style Sheets components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-css","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/MoveElement.js","index.js"],"json":["component.json"],"noflo":{"components":{"MoveElement":"components/MoveElement.js"}}}');
+});
 require.register("noflo-noflo-physics/index.js", function(exports, require, module){
 /*
  * This file can be used for general library features of noflo-physics.
@@ -11923,7 +11922,6 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.subscribe = function(element) {
     var draggie;
-    console.log(this.options);
     draggie = this.draggie = new Draggabilly(element, this.options);
     draggie.on('dragStart', this.dragstart);
     draggie.on('dragMove', this.dragmove);
@@ -11932,7 +11930,6 @@ NoFloDraggabilly = (function(_super) {
 
   NoFloDraggabilly.prototype.setOptions = function(options) {
     var key, value, _results;
-    console.log(options);
     if (typeof options !== "object") {
       throw new Error("Options is not an object");
     }
@@ -12395,7 +12392,7 @@ NofloSubgraph.View = Subgraph.View.extend({
 
 });
 require.register("dataflow-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-physics":"*","noflo/noflo-math":"*","d4tocchini/noflo-draggabilly":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
+module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-css":"*","noflo/noflo-physics":"*","noflo/noflo-math":"*","d4tocchini/noflo-draggabilly":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
 });
 require.register("dataflow-noflo/graphs/Button.json", function(exports, require, module){
 module.exports = JSON.parse('{"processes":{"GetButton":{"component":"dom/GetElement"},"Listen":{"component":"dom/ListenMouse"},"GetClicked":{"component":"objects/GetObjectKey"},"GetValue":{"component":"dom/ReadHtml"}},"connections":[{"src":{"process":"GetButton","port":"element"},"tgt":{"process":"Listen","port":"element"}},{"src":{"process":"Listen","port":"click"},"tgt":{"process":"GetClicked","port":"in"}},{"data":"target","tgt":{"process":"GetClicked","port":"key"}},{"src":{"process":"GetClicked","port":"out"},"tgt":{"process":"GetValue","port":"container"}}],"exports":[{"private":"getbutton.selector","public":"selector"},{"private":"getbutton.in","public":"container"},{"private":"getvalue.html","public":"clicked"}]}');
@@ -12597,6 +12594,32 @@ require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-dom/deps/noflo/src/li
 require.alias("noflo-noflo/src/lib/Network.js", "noflo-noflo-dom/deps/noflo/src/lib/Network.js");
 require.alias("noflo-noflo/src/components/Graph.js", "noflo-noflo-dom/deps/noflo/src/components/Graph.js");
 require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-dom/deps/noflo/index.js");
+require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
+require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
+
+require.alias("component-underscore/index.js", "noflo-noflo/deps/underscore/index.js");
+
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/lib/fbp.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/index.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-fbp/index.js");
+
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
+
+require.alias("noflo-noflo-css/components/MoveElement.js", "dataflow-noflo/deps/noflo-css/components/MoveElement.js");
+require.alias("noflo-noflo-css/index.js", "dataflow-noflo/deps/noflo-css/index.js");
+require.alias("noflo-noflo-css/index.js", "noflo-css/index.js");
+require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-css/deps/noflo/src/lib/Graph.js");
+require.alias("noflo-noflo/src/lib/InternalSocket.js", "noflo-noflo-css/deps/noflo/src/lib/InternalSocket.js");
+require.alias("noflo-noflo/src/lib/Port.js", "noflo-noflo-css/deps/noflo/src/lib/Port.js");
+require.alias("noflo-noflo/src/lib/ArrayPort.js", "noflo-noflo-css/deps/noflo/src/lib/ArrayPort.js");
+require.alias("noflo-noflo/src/lib/Component.js", "noflo-noflo-css/deps/noflo/src/lib/Component.js");
+require.alias("noflo-noflo/src/lib/AsyncComponent.js", "noflo-noflo-css/deps/noflo/src/lib/AsyncComponent.js");
+require.alias("noflo-noflo/src/lib/LoggingComponent.js", "noflo-noflo-css/deps/noflo/src/lib/LoggingComponent.js");
+require.alias("noflo-noflo/src/lib/ComponentLoader.js", "noflo-noflo-css/deps/noflo/src/lib/ComponentLoader.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/src/lib/NoFlo.js");
+require.alias("noflo-noflo/src/lib/Network.js", "noflo-noflo-css/deps/noflo/src/lib/Network.js");
+require.alias("noflo-noflo/src/components/Graph.js", "noflo-noflo-css/deps/noflo/src/components/Graph.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/index.js");
 require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
 require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
 
