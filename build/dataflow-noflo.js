@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-08-26 (6:13:39 PM EDT)
+/*! dataflow.js - v0.0.7 - 2013-09-01 (5:22:17 PM EDT)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -980,17 +980,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.dataflow.trigger("select:edge", this, edge);
     },
     selectionChanged: function () {
-      this.selected = [];
-      if (!this.view) {
-        return;
-      }
-
-      this.nodes.each( function (node) {
-        if (node.view && node.view.$el.hasClass("ui-selected")) {
-          this.selected.push(node);
-        }
-      }, this);
-
+      this.selected = this.nodes.where({selected:true});
       this.dataflow.changeContext(this.selected);
     },
     remove: function(){
@@ -1017,12 +1007,15 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   var Output = Dataflow.prototype.module("output");
 
   Node.Model = Backbone.Model.extend({
-    defaults: {
-      label: "",
-      type: "test",
-      x: 200,
-      y: 100,
-      state: {}
+    defaults: function () {
+      return {
+        label: "",
+        type: "test",
+        x: 200,
+        y: 100,
+        state: {},
+        selected: false
+      };
     },
     initialize: function() {
       this.parentGraph = this.get("parentGraph");
@@ -1065,11 +1058,13 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
 
       // Selection event
-      this.on("select", this.select, this);
+      this.on("change:selected", this.changeSelected, this);
 
     },
-    select: function() {
-      this.parentGraph.trigger("select:node", this);
+    changeSelected: function() {
+      if (this.get("selected")){
+        this.parentGraph.trigger("select:node", this);
+      }
     },
     setState: function (name, value) {
       var state = this.get("state");
@@ -1230,7 +1225,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   Edge.Model = Backbone.Model.extend({
     defaults: {
       "z": 0,
-      "route": 0
+      "route": 0,
+      "selected": false
     },
     initialize: function() {
       var nodes, sourceNode, targetNode;
@@ -1267,7 +1263,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         // Set up listener
         sourceNode.on("send:"+this.source.id, this.send, this);
 
-        // this.bringToTop();
+        this.bringToTop();
 
         // Selection event
         this.on("select", this.select, this);
@@ -1295,24 +1291,21 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         route: this.get("route")
       };
     },
-    // bringToTop: function(){
-    //   var topZ = 0;
-    //   this.parentGraph.edges.each(function(edge){
-    //     if (edge !== this) {
-    //       var thisZ = edge.get("z");
-    //       if (thisZ > topZ) {
-    //         topZ = thisZ;
-    //       }
-    //       if (edge.view){
-    //         edge.view.unhighlight();
-    //       }
-    //     }
-    //   }, this);
-    //   this.set("z", topZ+1);
-    //   if (this.collection) {
-    //     this.collection.sort();
-    //   }
-    // },
+    bringToTop: function(){
+      var topZ = 0;
+      this.parentGraph.edges.each(function(edge){
+        if (edge !== this) {
+          var thisZ = edge.get("z");
+          if (thisZ > topZ) {
+            topZ = thisZ;
+          }
+          if (edge.view){
+            edge.view.unhighlight();
+          }
+        }
+      }, this);
+      this.set("z", topZ+1);
+    },
     remove: function(){
       this.source.disconnect(this);
       this.target.disconnect(this);
@@ -1652,21 +1645,28 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       } catch (error) {}
     },
     deselect: function () {
-      this.$(".dataflow-node").removeClass("ui-selected");
+      this.model.nodes.invoke("set", {selected:false});
+      this.model.edges.invoke("set", {selected:false});
+      // this.model.nodes.each(function (node) {
+      //   node.set("selected", false);
+      // }, this);
       this.model.trigger("selectionChanged");
       this.unfade();
       this.model.dataflow.hideMenu();
     },
     fade: function () {
       this.model.nodes.each(function(node){
-        if (!node.view.$el.hasClass("ui-selected")){
-          if (node.view) {
-            node.view.fade();
-          }
+        if (node.view) {
+          node.view.fade();
         }
       });
+      this.fadeEdges();
+    },
+    fadeEdges: function () {
       this.model.edges.each(function(edge){
-        if (edge.view) {
+        if (edge.get("selected") || edge.source.parentNode.get("selected") || edge.target.parentNode.get("selected")) {
+          edge.view.unfade();
+        } else {
           edge.view.fade();
         }
       });
@@ -1782,8 +1782,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // }, this);
 
       // Listen for graph panning
-      // this.model.parentGraph.on("change:panX change:panY", this.bumpPosition, this);
       this.listenTo(this.model.parentGraph, "change:panX change:panY", this.bumpPosition);
+
+      // Selected listener
+      this.listenTo(this.model, "change:selected", this.selectedChanged);
 
       this.$inner = this.$(".dataflow-node-inner");
     },
@@ -1805,11 +1807,11 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     _alsoDrag: [],
     _dragDelta: {},
-    $dragHelpers: null,
+    $dragHelpers: $('<div class="dataflow-nodes-helpers">'),
     dragStart: function(event, ui){
       if (!ui){ return; }
       // Select this
-      if (!this.$el.hasClass("ui-selected")){
+      if (!this.model.get("selected")){
         this.select(event, true);
       }
 
@@ -1819,37 +1821,27 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // Current zoom
       zoom = this.model.parentGraph.get('zoom');
 
-      // Make helper and save start position of all other selected
-      var self = this;
-      this._alsoDrag = [];
-
-      this.$dragHelpers = $('<div class="dataflow-nodes-helpers">');
+      this.$dragHelpers.css({
+        transform: "translate3d(0,0,0)"
+      });
       this.$el.parent().append( this.$dragHelpers );
 
-      var helper = $('<div class="dataflow-node helper">').css({
-        width: this.$el.width(),
-        height: this.$el.height(),
-        left: parseInt(this.$el.css('left'), 10),
-        top: parseInt(this.$el.css('top'), 10)
-      });
-      this.$dragHelpers.append(helper);
+      // Make helper and save start position of all other selected
+      var self = this;
+      this._alsoDrag = this.model.collection.where({selected:true});
 
-      this.model.parentGraph.view.$(".ui-selected").each(function() {
-        if (self.el !== this) {
-          var el = $(this);
-          // Add helper
-          var helper = $('<div class="dataflow-node helper">').css({
-            width: el.width(),
-            height: el.height(),
-            left: parseInt(el.css('left'), 10),
-            top: parseInt(el.css('top'), 10)
-          });
-          self.$dragHelpers.append(helper);
-          el.data("ui-draggable-alsodrag-helper", helper);
-          // Add to array
-          self._alsoDrag.push(el);
-        }
-      });
+      _.each(this._alsoDrag, function(node){
+        var $el = node.view.$el;
+        // Add helper
+        var helper = $('<div class="dataflow-node helper">').css({
+          width: $el.width(),
+          height: $el.height(),
+          left: parseInt($el.css('left'), 10),
+          top: parseInt($el.css('top'), 10)
+        });
+        this.$dragHelpers.append(helper);
+      }, this);
+
     },
     drag: function(event, ui){
       if (!ui){ return; }
@@ -1871,20 +1863,16 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       var panY = this.model.parentGraph.get("panY");
       var deltaX = (ui.position.left - ui.originalPosition.left) / zoom;
       var deltaY = (ui.position.top - ui.originalPosition.top) / zoom;
-      this.moveToPosition(this.model.get("x") + deltaX, this.model.get("y") + deltaY);
+      // this.moveToPosition(this.model.get("x") + deltaX, this.model.get("y") + deltaY);
       // Also drag
       if (this._alsoDrag.length) {
-        _.each(this._alsoDrag, function(el){
-          var initial = el.data("ui-draggable-alsodrag-initial");
-          var helper = el.data("ui-draggable-alsodrag-helper");
-          var node = el.data("dataflow-node-view");
-          // Move other node
-          node.moveToPosition(node.model.get("x") + deltaX, node.model.get("y") + deltaY);
-          el.data("ui-draggable-alsodrag-helper", null);
-        });
+        _.each(this._alsoDrag, function(node){
+          node.view.moveToPosition(node.get("x") + deltaX, node.get("y") + deltaY);
+        }, this);
         this._alsoDrag = [];
       }
       // Remove helpers
+      this.$dragHelpers.empty();
       this.$dragHelpers.remove();
     },
     bumpPosition: function () {
@@ -1945,46 +1933,45 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         event.stopPropagation();
       }
       var toggle = false;
+      var selected = this.model.get("selected");
       if (event && (event.ctrlKey || event.metaKey)) {
         toggle = true;
+        selected = !selected;
+        this.model.set("selected", selected);
+        if (!selected) {
+          this.fade();
+        }
       } else {
-        deselectOthers = true;
-      }
-      // De/select
-      if (deselectOthers) {
-        this.model.parentGraph.view.$(".ui-selected").removeClass("ui-selected");
-      }
-      if (toggle) {
-        this.$el.toggleClass("ui-selected");
-      } else {
-        this.$el.addClass("ui-selected");
+        // Deselect all
+        this.model.parentGraph.nodes.invoke("set",{selected:false});
+        this.model.parentGraph.view.fade();
+        selected = true;
+        this.model.set("selected", true);
       }
       this.bringToTop();
-      // Fade / highlight
-      this.model.parentGraph.view.fade();
-      if (this.$el.hasClass("ui-selected")) {
-        this.unfade();
-      } else {
-        this.fade();
-      }
-      // Trigger
-      this.model.trigger("select");
+      this.model.parentGraph.view.fadeEdges();
       this.model.parentGraph.trigger("selectionChanged");
     },
     fade: function(){
       this.$el.addClass("fade");
+      this.$el.removeClass("ui-selected");
     },
     unfade: function(){
       this.$el.removeClass("fade");
-      // Unfade related edges
-      var self = this;
-      this.model.parentGraph.edges.each(function(edge){
-        if (edge.source.parentNode.id === self.model.id || edge.target.parentNode.id === self.model.id) {
-          if (edge.view) {
-            edge.view.unfade();
-          }
-        }
-      });
+    },
+    selectedChanged: function () {
+      if (this.model.get("selected")) {
+        this.highlight();
+      } else {
+        this.unhighlight();
+      }
+    },
+    highlight: function () {
+      this.$el.removeClass("fade");
+      this.$el.addClass("ui-selected");
+    },
+    unhighlight: function () {
+      this.$el.removeClass("ui-selected");
     },
     $inputList: null,
     getInputList: function() {
@@ -2043,18 +2030,29 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.$el.html(this.template(this.model.toJSON()));
       this.$el.addClass(this.model.get("type"));
 
+      this.parent = options.parent;
+
+      // Reset hole position
+      var node = this.parent.model;
+      var graph = node.parentGraph;
+      this.listenTo(node, "change:x change:y", function(){
+        this._holePosition = null;
+      }.bind(this));
+      this.listenTo(graph, "change:panX change:panY", function(){
+        this._holePosition = null;
+      }.bind(this));
+
       if (!this.model.parentNode.parentGraph.dataflow.editable) {
         // No drag and drop
         return;
       }
 
       var self = this;
-      this.parent = options.parent;
       this.$(".dataflow-port-plug").draggable({
         cursor: "pointer",
         helper: function(){
           var helper = $('<span class="dataflow-port-plug in helper" />');
-          $('.dataflow-graph').append(helper);
+          self.parent.graph.$el.append(helper);
           return helper;
         },
         disabled: true,
@@ -2067,7 +2065,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         helper: function(){
           var helper = $('<span class="dataflow-port-plug out helper" />')
             .data({port: self.model});
-          $('.dataflow-graph').append(helper);
+          self.parent.graph.$el.append(helper);
           return helper;
         }
       });
@@ -2126,6 +2124,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         .append( input )
         .prepend( '<span>' + this.model.get("label") + "</span> " );
       this.$input = label;
+
     },
     renderInput: function (type, options) {
       var input;
@@ -2286,11 +2285,14 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     getTopEdge: function() {
       var topEdge;
+      var topZ = -1;
       if (this.isConnected){
-        // Will get the last (top) matching edge
+        // Will get the top matching edge
         this.model.parentNode.parentGraph.edges.each(function(edge){
-          if(edge.target === this.model){
+          var thisZ = edge.get("z");
+          if(edge.target === this.model && thisZ > topZ ){
             topEdge = edge;
+            topZ = thisZ;
           }
           if (edge.view) {
             edge.view.unhighlight();
@@ -2388,17 +2390,22 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // Tells changeEdgeStop to remove to old edge
       ui.helper.data("removeChangeEdge", (oldLength < this.model.parentNode.parentGraph.edges.length));
     },
+    _holePosition: null,
     holePosition: function(){
-      var holePos = this.$(".dataflow-port-hole").offset();
-      if (!this.parent) {
-        this.parent = this.options.parent;
+      // this._holePosition gets reset when graph panned or node moved
+      if (!this._holePosition) {
+        if (!this.parent){
+          this.parent = this.options.parent;
+        }
+        var node = this.parent.model;
+        var graph = node.parentGraph;
+        var $graph = this.parent.graph.$el;
+        var index = this.$el.index();
+        var left = graph.get("panX") + node.get("x") + 18;
+        var top = graph.get("panY") + node.get("y") + 48 + index*20;
+        this._holePosition = { left:left, top:top };
       }
-      var $graph = this.parent.graph.$el;
-      var graphPos = $graph.offset();
-      return {
-        left: $graph.scrollLeft() + holePos.left - graphPos.left + 5,
-        top: $graph.scrollTop() + holePos.top - graphPos.top + 8
-      };
+      return this._holePosition;
     },
     isConnected: false,
     plugSetActive: function(){
@@ -2409,10 +2416,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.isConnected = true;
     },
     plugCheckActive: function(){
-      var isConnected = this.model.parentNode.parentGraph.edges.some(function(edge){
-        return (edge.target === this.model);
+      var topEdge;
+      var topEdgeZ = -1;
+      this.model.parentNode.parentGraph.edges.each(function(edge){
+        if (edge.target === this.model) {
+          var z = edge.get("z");
+          if (z > topEdgeZ) {
+            topEdge = edge;
+            topEdgeZ = z;
+          }
+        }
       }, this);
-      if (!isConnected) {
+      if (topEdge) {
+        this.bringToTop(topEdge);
+      } else {
         try {
           this.$(".dataflow-port-plug").draggable("disable");
         } catch (e) { }
@@ -2470,18 +2487,29 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.$el.html(this.template(this.model.toJSON()));
       this.$el.addClass(this.model.get("type"));
 
+      this.parent = options.parent;
+
+      // Reset hole position
+      var node = this.parent.model;
+      var graph = node.parentGraph;
+      this.listenTo(node, "change:x change:y change:w", function(){
+        this._holePosition = null;
+      }.bind(this));
+      this.listenTo(graph, "change:panX change:panY", function(){
+        this._holePosition = null;
+      }.bind(this));
+
       if (!this.model.parentNode.parentGraph.dataflow.editable) {
         // No drag and drop
         return;
       }
 
       var self = this;
-      this.parent = options.parent;
       this.$(".dataflow-port-plug").draggable({
         cursor: "pointer",
         helper: function(){
           var helper = $('<span class="dataflow-port-plug out helper" />');
-          $('.dataflow-graph').append(helper);
+          self.parent.graph.$el.append(helper);
           return helper;
         },
         disabled: true,
@@ -2494,7 +2522,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         helper: function(){
           var helper = $('<span class="dataflow-port-plug in helper" />')
             .data({port: self.model});
-          $('.dataflow-graph').append(helper);
+          self.parent.graph.$el.append(helper);
           return helper;
         }
       });
@@ -2559,11 +2587,14 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     },
     getTopEdge: function() {
       var topEdge;
+      var topZ = -1;
       if (this.isConnected){
-        // Will get the last (top) matching edge
+        // Will get the top matching edge
         this.model.parentNode.parentGraph.edges.each(function(edge){
-          if(edge.source === this.model){
+          var thisZ = edge.get("z");
+          if(edge.source === this.model && thisZ > topZ ){
             topEdge = edge;
+            topZ = thisZ;
           }
           if (edge.view) {
             edge.view.unhighlight();
@@ -2661,18 +2692,23 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // Tells changeEdgeStop to remove to old edge
       ui.helper.data("removeChangeEdge", (oldLength < this.model.parentNode.parentGraph.edges.length));
     },
-    // _holePosition: null,
+    _holePosition: null,
     holePosition: function () {
-      var holePos = this.$(".dataflow-port-hole").offset();
-      if (!this.parent) {
-        this.parent = this.options.parent;
+      // this._holePosition gets reset when graph panned or node moved
+      if (!this._holePosition) {
+        if (!this.parent){
+          this.parent = this.options.parent;
+        }
+        var node = this.parent.model;
+        var graph = node.parentGraph;
+        var $graph = this.parent.graph.$el;
+        var index = this.$el.index();
+        var width = node.get("w") !== undefined ? node.get("w") : 175;
+        var left = graph.get("panX") + node.get("x") + width - 18;
+        var top = graph.get("panY") + node.get("y") + 48 + index*20;
+        this._holePosition = { left:left, top:top };
       }
-      var $graph = this.parent.graph.$el;
-      var graphPos = $graph.offset();
-      return {
-        left: $graph.scrollLeft() + holePos.left - graphPos.left + 5,
-        top: $graph.scrollTop() + holePos.top - graphPos.top + 8
-      };
+      return this._holePosition;
     },
     isConnected: false,
     plugSetActive: function(){
@@ -2683,10 +2719,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.isConnected = true;
     },
     plugCheckActive: function(){
-      var isConnected = this.model.parentNode.parentGraph.edges.some(function(edge){
-        return (edge.source === this.model);
+      var topEdge;
+      var topEdgeZ = -1;
+      this.model.parentNode.parentGraph.edges.each(function(edge){
+        if (edge.source === this.model) {
+          var z = edge.get("z");
+          if (z > topEdgeZ) {
+            topEdge = edge;
+            topEdgeZ = z;
+          }
+        }
       }, this);
-      if (!isConnected) {
+      if (topEdge) {
+        this.bringToTop(topEdge);
+      } else {
         try {
           this.$(".dataflow-port-plug").draggable("disable");
         } catch (e) { }
@@ -2797,22 +2843,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         self.click(event);
       });
 
+      // Listen for select
+      this.listenTo(this.model, "change:selected", this.selectedChange);
+
     },
     render: function(previewPosition){
       var source = this.model.source;
       var target = this.model.target;
       var dataflowParent, graphPos;
-      // TODO: match zoom
-      // if (previewPosition) {
-      //   var zoom = this.model.parentGraph.get('zoom');
-      //   previewPosition.left /= zoom;
-      //   previewPosition.top /= zoom;
-      // }
       if (source) {
         this.positions.from = source.view.holePosition();
       }
       else {
         // Preview 
+        // TODO: match zoom
         dataflowParent = this.model.parentGraph.dataflow.$el.parent().position();
         graph = this.model.parentGraph.view.$el;
         this.positions.from = {
@@ -2836,6 +2880,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // this.positions.from.top = Math.floor(this.positions.from.top);
       // this.positions.to.left = Math.floor(this.positions.to.left);
       // this.positions.to.top = Math.floor(this.positions.to.top);
+ 
       // Make and apply the path
       var pathD = this.edgePath(this.positions);
       this.elEdge.setAttribute("d", pathD);
@@ -2846,13 +2891,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
     },
     fade: function(){
-      if (this.model.source.parentNode.view.$el.hasClass("ui-selected") || this.model.target.parentNode.view.$el.hasClass("ui-selected")) {
+      if (this.model.source.parentNode.get("selected") || this.model.target.parentNode.get("selected")) {
         return;
       }
       this.el.setAttribute("class", "dataflow-edge fade");
     },
     unfade: function(){
       this.el.setAttribute("class", "dataflow-edge");
+    },
+    selectedChange: function () {
+      if (this.model.get("selected")){
+        this.highlight();
+      } else {
+        this.unhighlight();
+      }
     },
     highlight: function(){
       this.el.setAttribute("class", "dataflow-edge highlight");
@@ -2945,14 +2997,25 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       if (event) {
         event.stopPropagation();
       }
-      // Highlight
-      this.highlight();
-      this.bringToTop();
-      this.model.trigger("select");
+      var selected;
+      if (event && (event.ctrlKey || event.metaKey)) {
+        // Toggle
+        selected = this.model.get("selected");
+        selected = !selected;
+      } else {
+        // Deselect all and select this
+        selected = true;
+        this.model.collection.invoke("set", {selected:false});
+      }
+      this.model.set({selected:selected});
+      if (selected) {
+        this.bringToTop();
+        this.model.trigger("select");
+        this.unfade();
+        this.showInspector();
+      }
       // Fade all and highlight related
       this.model.parentGraph.view.fade();
-      this.unfade();
-      this.showInspector();
     },
     showInspector: function(){
       this.model.parentGraph.dataflow.showMenu("inspector");
@@ -2965,14 +3028,11 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       $choose.children(".route"+this.model.get("route")).addClass("active");
     },
     bringToTop: function(){
-      // this.model.bringToTop();
+      this.model.bringToTop();
       var parent = this.el.parentNode;
       if (parent) {
         parent.appendChild(this.el);
       }
-
-      // this.model.source.parentNode.view.unfade();
-      // this.model.target.parentNode.view.unfade();
 
       // Port hole color
       this.model.source.view.bringToTop(this.model);
@@ -3051,9 +3111,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     //
 
     function selectAll(){
-      dataflow.currentGraph.view.$(".dataflow-node")
-        .addClass("ui-selected")
-        .removeClass("fade");
+      dataflow.currentGraph.nodes.invoke("set", {selected:true});
     }
     buttons.children(".selectall").click(selectAll);
     Edit.selectAll = selectAll;
@@ -3071,9 +3129,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         node.y -= 50;
       });
       // Remove selected
-      var toRemove = dataflow.currentGraph.nodes.filter(function(node){
-        return node.view.$el.hasClass("ui-selected");
-      });
+      var toRemove = dataflow.currentGraph.nodes.where({selected:true});
       _.each(toRemove, function(node){
         node.remove();
       });
@@ -3089,12 +3145,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     function copy(){
       copied = {};
       // nodes
-      copied.nodes = [];
-      dataflow.currentGraph.nodes.each(function(node){
-        if (node.view.$el.hasClass("ui-selected")) {
-          copied.nodes.push( JSON.parse(JSON.stringify(node)) );
-        }
-      });
+      copied.nodes = dataflow.currentGraph.nodes.where({selected:true});
+      copied.nodes = JSON.parse(JSON.stringify(copied.nodes));
       // edges
       copied.edges = [];
       dataflow.currentGraph.edges.each(function(edge){
@@ -3120,13 +3172,14 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     function paste(){
       if (copied && copied.nodes && copied.nodes.length > 0) {
         // Deselect all
-        dataflow.currentGraph.view.$(".dataflow-node").removeClass("ui-selected");
+        dataflow.currentGraph.nodes.invoke("set", {selected:false});
         // Add nodes
         _.each(copied.nodes, function(node){
           // Offset pasted
           node.x += 50;
           node.y += 50;
           node.parentGraph = dataflow.currentGraph;
+          node.selected = true;
           var oldId = node.id;
           // Make unique id
           while (dataflow.currentGraph.nodes.get(node.id)){
@@ -3145,8 +3198,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
           }
           var newNode = new dataflow.nodes[node.type].Model(node);
           dataflow.currentGraph.nodes.add(newNode);
-          // Select it
-          newNode.view.select();
+          // Select new node
+          newNode.view.bringToTop();
+          newNode.view.highlight();
         });
         // Add edges
         _.each(copied.edges, function(edge){
@@ -3608,13 +3662,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
   Base.Model = Node.Model.extend({
     defaults: function(){
-      return {
-        label: "",
-        type: "base",
-        x: 200,
-        y: 100,
-        state: {}
-      };
+      var defaults = Node.Model.prototype.defaults.call(this);
+      defaults.type = "base";
+      return defaults;
     },
     initialize: function() {
       Node.Model.prototype.initialize.call(this);
@@ -3705,17 +3755,17 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   var Output = Dataflow.prototype.module("output");
 
   DataflowSubgraph.Model = BaseResizable.Model.extend({
-    defaults: {
-      label: "subgraph",
-      type: "dataflow-subgraph",
-      x: 200,
-      y: 100,
-      graph: {
+    defaults: function(){
+      var defaults = BaseResizable.Model.prototype.defaults.call(this);
+      defaults.label = "subgraph";
+      defaults.type = "dataflow-subgraph";
+      defaults.graph = {
         nodes:[
           {id: "1", label: "in", type:"dataflow-input",  x:180, y: 15},
           {id:"99", label:"out", type:"dataflow-output", x:975, y:500}
         ]
-      }
+      };
+      return defaults;
     },
     initialize: function() {
       BaseResizable.Model.prototype.initialize.call(this);
@@ -10583,7 +10633,7 @@ CreateDate = (function(_super) {
     };
     this.inPorts["in"].on("data", function(data) {
       var date;
-      if (data === "now" || data === null) {
+      if (data === "now" || data === null || data === true) {
         date = new Date;
       } else {
         date = new Date(data);
@@ -11980,6 +12030,119 @@ exports.getComponent = function() {
 require.register("d4tocchini-noflo-draggabilly/component.json", function(exports, require, module){
 module.exports = JSON.parse('{"name":"noflo-draggabilly","description":"Draggabilly components for the NoFlo flow-based programming environment","author":"D4 Tocchini <d4@rituwall.com>","repo":"d4tocchini/noflo-draggabilly","version":"0.0.1","keywords":["fbp","drag","dnd","draggable"],"dependencies":{"noflo/noflo":"*"},"scripts":["components/Draggabilly.js","index.js"],"json":["component.json"],"noflo":{"components":{"Draggabilly":"components/Draggabilly.js"}}}');
 });
+require.register("noflo-noflo-css/index.js", function(exports, require, module){
+/*
+ * This file can be used for general library features that are exposed as CommonJS modules
+ * that the components then utilize
+ */
+
+});
+require.register("noflo-noflo-css/components/MoveElement.js", function(exports, require, module){
+var MoveElement, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+MoveElement = (function(_super) {
+  __extends(MoveElement, _super);
+
+  MoveElement.prototype.description = 'Change the coordinates of a DOM element';
+
+  function MoveElement() {
+    var _this = this;
+    this.element = null;
+    this.inPorts = {
+      element: new noflo.Port('object'),
+      x: new noflo.Port('number'),
+      y: new noflo.Port('number'),
+      z: new noflo.Port('number')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.element = element;
+    });
+    this.inPorts.x.on('data', function(x) {
+      return _this.setPosition('left', "" + x + "px");
+    });
+    this.inPorts.y.on('data', function(y) {
+      return _this.setPosition('top', "" + y + "px");
+    });
+    this.inPorts.z.on('data', function(z) {
+      return _this.setPosition('zIndex', z);
+    });
+  }
+
+  MoveElement.prototype.setPosition = function(attr, value) {
+    this.element.style.position = 'absolute';
+    return this.element.style[attr] = value;
+  };
+
+  return MoveElement;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new MoveElement;
+};
+
+});
+require.register("noflo-noflo-css/components/RotateElement.js", function(exports, require, module){
+var RotateElement, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+RotateElement = (function(_super) {
+  __extends(RotateElement, _super);
+
+  RotateElement.prototype.description = 'Change the coordinates of a DOM element';
+
+  function RotateElement() {
+    var _this = this;
+    this.element = null;
+    this.inPorts = {
+      element: new noflo.Port('object'),
+      percent: new noflo.Port('number')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.element = element;
+    });
+    this.inPorts.percent.on('data', function(percent) {
+      if (_this.element) {
+        return _this.setRotation(_this.element, percent);
+      }
+    });
+  }
+
+  RotateElement.prototype.setRotation = function(element, percent) {
+    var degrees;
+    degrees = 360 * percent;
+    return this.setVendor(element, "transform", "rotate(" + degrees + "deg)");
+  };
+
+  RotateElement.prototype.setVendor = function(element, property, value) {
+    var propertyCap;
+    propertyCap = property.charAt(0).toUpperCase() + property.substr(1);
+    element.style["webkit" + propertyCap] = value;
+    element.style["moz" + propertyCap] = value;
+    element.style["ms" + propertyCap] = value;
+    element.style["o" + propertyCap] = value;
+    return element.style[property] = value;
+  };
+
+  return RotateElement;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new RotateElement;
+};
+
+});
+require.register("noflo-noflo-css/component.json", function(exports, require, module){
+module.exports = JSON.parse('{"name":"noflo-css","description":"Cascading Style Sheets components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-css","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/MoveElement.js","components/RotateElement.js","index.js"],"json":["component.json"],"noflo":{"components":{"MoveElement":"components/MoveElement.js","RotateElement":"components/RotateElement.js"}}}');
+});
 require.register("dataflow-noflo/src/dataflow-noflo.js", function(exports, require, module){
 var Base, Dataflow, DataflowNoflo, Graph, NofloBase, NofloSubgraph, noflo;
 
@@ -12395,7 +12558,7 @@ NofloSubgraph.View = Subgraph.View.extend({
 
 });
 require.register("dataflow-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-physics":"*","noflo/noflo-math":"*","d4tocchini/noflo-draggabilly":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
+module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-physics":"*","noflo/noflo-math":"*","d4tocchini/noflo-draggabilly":"*","noflo/noflo-css":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
 });
 require.register("dataflow-noflo/graphs/Button.json", function(exports, require, module){
 module.exports = JSON.parse('{"processes":{"GetButton":{"component":"dom/GetElement"},"Listen":{"component":"dom/ListenMouse"},"GetClicked":{"component":"objects/GetObjectKey"},"GetValue":{"component":"dom/ReadHtml"}},"connections":[{"src":{"process":"GetButton","port":"element"},"tgt":{"process":"Listen","port":"element"}},{"src":{"process":"Listen","port":"click"},"tgt":{"process":"GetClicked","port":"in"}},{"data":"target","tgt":{"process":"GetClicked","port":"key"}},{"src":{"process":"GetClicked","port":"out"},"tgt":{"process":"GetValue","port":"container"}}],"exports":[{"private":"getbutton.selector","public":"selector"},{"private":"getbutton.in","public":"container"},{"private":"getvalue.html","public":"clicked"}]}');
@@ -12679,6 +12842,33 @@ require.alias("noflo-noflo/src/lib/NoFlo.js", "d4tocchini-noflo-draggabilly/deps
 require.alias("noflo-noflo/src/lib/Network.js", "d4tocchini-noflo-draggabilly/deps/noflo/src/lib/Network.js");
 require.alias("noflo-noflo/src/components/Graph.js", "d4tocchini-noflo-draggabilly/deps/noflo/src/components/Graph.js");
 require.alias("noflo-noflo/src/lib/NoFlo.js", "d4tocchini-noflo-draggabilly/deps/noflo/index.js");
+require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
+require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
+
+require.alias("component-underscore/index.js", "noflo-noflo/deps/underscore/index.js");
+
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/lib/fbp.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/index.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-fbp/index.js");
+
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
+
+require.alias("noflo-noflo-css/components/MoveElement.js", "dataflow-noflo/deps/noflo-css/components/MoveElement.js");
+require.alias("noflo-noflo-css/components/RotateElement.js", "dataflow-noflo/deps/noflo-css/components/RotateElement.js");
+require.alias("noflo-noflo-css/index.js", "dataflow-noflo/deps/noflo-css/index.js");
+require.alias("noflo-noflo-css/index.js", "noflo-css/index.js");
+require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-css/deps/noflo/src/lib/Graph.js");
+require.alias("noflo-noflo/src/lib/InternalSocket.js", "noflo-noflo-css/deps/noflo/src/lib/InternalSocket.js");
+require.alias("noflo-noflo/src/lib/Port.js", "noflo-noflo-css/deps/noflo/src/lib/Port.js");
+require.alias("noflo-noflo/src/lib/ArrayPort.js", "noflo-noflo-css/deps/noflo/src/lib/ArrayPort.js");
+require.alias("noflo-noflo/src/lib/Component.js", "noflo-noflo-css/deps/noflo/src/lib/Component.js");
+require.alias("noflo-noflo/src/lib/AsyncComponent.js", "noflo-noflo-css/deps/noflo/src/lib/AsyncComponent.js");
+require.alias("noflo-noflo/src/lib/LoggingComponent.js", "noflo-noflo-css/deps/noflo/src/lib/LoggingComponent.js");
+require.alias("noflo-noflo/src/lib/ComponentLoader.js", "noflo-noflo-css/deps/noflo/src/lib/ComponentLoader.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/src/lib/NoFlo.js");
+require.alias("noflo-noflo/src/lib/Network.js", "noflo-noflo-css/deps/noflo/src/lib/Network.js");
+require.alias("noflo-noflo/src/components/Graph.js", "noflo-noflo-css/deps/noflo/src/components/Graph.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/index.js");
 require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
 require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
 

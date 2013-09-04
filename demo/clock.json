@@ -4,289 +4,274 @@
   },
   "exports": [],
   "processes": {
+    "makeHourRotation": {
+      "component": "math/Divide",
+      "metadata": {
+        "x": 618.796875,
+        "y": 537.5
+      }
+    },
+    "rotateMinuteHand": {
+      "component": "css/RotateElement",
+      "metadata": {
+        "x": 850.796875,
+        "y": 280
+      }
+    },
+    "rotateHourHand": {
+      "component": "css/RotateElement",
+      "metadata": {
+        "x": 855.796875,
+        "y": 493
+      }
+    },
+    "getSecondHand": {
+      "component": "dom/GetElement",
+      "metadata": {
+        "x": 609,
+        "y": 37
+      }
+    },
+    "getMinuteHand": {
+      "component": "dom/GetElement",
+      "metadata": {
+        "x": 615,
+        "y": 244
+      }
+    },
+    "getHourHand": {
+      "component": "dom/GetElement",
+      "metadata": {
+        "x": 616,
+        "y": 441
+      }
+    },
+    "makeSecondRotation": {
+      "component": "math/Divide",
+      "metadata": {
+        "x": 610,
+        "y": 140
+      }
+    },
+    "rotateSecondHand": {
+      "component": "css/RotateElement",
+      "metadata": {
+        "x": 847,
+        "y": 60
+      }
+    },
     "split": {
       "component": "core/Split",
       "metadata": {
-        "x": 154,
-        "y": 475
-      }
-    },
-    "makeMinutesDeg": {
-      "component": "math/Multiply",
-      "metadata": {
-        "x": 630,
-        "y": 367
-      }
-    },
-    "makeHoursDeg": {
-      "component": "math/Multiply",
-      "metadata": {
-        "x": 638,
-        "y": 485
-      }
-    },
-    "merge": {
-      "component": "core/Merge",
-      "metadata": {
-        "x": 867,
-        "y": 378
-      }
-    },
-    "out": {
-      "component": "core/Output",
-      "metadata": {
-        "x": 873,
-        "y": 244
+        "x": 342,
+        "y": 337
       }
     },
     "secondTick": {
       "component": "core/RunInterval",
       "metadata": {
-        "x": 157,
-        "y": 132
-      }
-    },
-    "sendStringNow": {
-      "component": "strings/SendString",
-      "metadata": {
-        "x": 148,
-        "y": 242
+        "x": 337,
+        "y": 126
       }
     },
     "createDate": {
       "component": "objects/CreateDate",
       "metadata": {
-        "x": 155,
-        "y": 362
+        "x": 335,
+        "y": 237
       }
     },
-    "getSeconds": {
-      "component": "objects/CallMethod",
+    "makeMinuteRotation": {
+      "component": "math/Divide",
       "metadata": {
-        "x": 410,
-        "y": 246
-      }
-    },
-    "makeSecondsDeg": {
-      "component": "math/Multiply",
-      "metadata": {
-        "x": 628,
-        "y": 243
-      }
-    },
-    "getMinutes": {
-      "component": "objects/CallMethod",
-      "metadata": {
-        "x": 412,
-        "y": 372
-      }
-    },
-    "getHours": {
-      "component": "objects/CallMethod",
-      "metadata": {
-        "x": 412,
-        "y": 486
+        "x": 613,
+        "y": 343
       }
     }
   },
   "connections": [
     {
       "src": {
+        "process": "createDate",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "split",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "makeSecondRotation",
+        "port": "dividend"
+      },
+      "metadata": {
+        "route": 5
+      }
+    },
+    {
+      "src": {
+        "process": "getSecondHand",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "rotateSecondHand",
+        "port": "element"
+      }
+    },
+    {
+      "src": {
+        "process": "makeSecondRotation",
+        "port": "quotient"
+      },
+      "tgt": {
+        "process": "rotateSecondHand",
+        "port": "percent"
+      },
+      "metadata": {
+        "route": 5
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "makeMinuteRotation",
+        "port": "dividend"
+      },
+      "metadata": {
+        "route": 8
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "makeHourRotation",
+        "port": "dividend"
+      },
+      "metadata": {
+        "route": 10
+      }
+    },
+    {
+      "src": {
+        "process": "getMinuteHand",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "rotateMinuteHand",
+        "port": "element"
+      }
+    },
+    {
+      "src": {
+        "process": "makeMinuteRotation",
+        "port": "quotient"
+      },
+      "tgt": {
+        "process": "rotateMinuteHand",
+        "port": "percent"
+      },
+      "metadata": {
+        "route": 8
+      }
+    },
+    {
+      "src": {
+        "process": "getHourHand",
+        "port": "element"
+      },
+      "tgt": {
+        "process": "rotateHourHand",
+        "port": "element"
+      }
+    },
+    {
+      "src": {
+        "process": "makeHourRotation",
+        "port": "quotient"
+      },
+      "tgt": {
+        "process": "rotateHourHand",
+        "port": "percent"
+      },
+      "metadata": {
+        "route": 10
+      }
+    },
+    {
+      "src": {
         "process": "secondTick",
         "port": "out"
       },
       "tgt": {
-        "process": "sendStringNow",
-        "port": "in"
-      }
-    },
-    {
-      "src": {
-        "process": "sendStringNow",
-        "port": "out"
-      },
-      "tgt": {
         "process": "createDate",
         "port": "in"
       }
     },
     {
-      "src": {
-        "process": "getSeconds",
-        "port": "out"
-      },
+      "data": true,
       "tgt": {
-        "process": "makeSecondsDeg",
-        "port": "multiplicand"
-      },
-      "metadata": {
-        "route": 1
+        "process": "secondTick",
+        "port": "stop"
       }
     },
     {
-      "src": {
-        "process": "createDate",
-        "port": "out"
-      },
+      "data": "#hours",
       "tgt": {
-        "process": "split",
-        "port": "in"
+        "process": "getHourHand",
+        "port": "selector"
       }
     },
     {
-      "src": {
-        "process": "split",
-        "port": "out"
-      },
+      "data": "#minutes",
       "tgt": {
-        "process": "getMinutes",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 2
+        "process": "getMinuteHand",
+        "port": "selector"
       }
     },
     {
-      "src": {
-        "process": "merge",
-        "port": "out"
-      },
+      "data": "#seconds",
       "tgt": {
-        "process": "out",
-        "port": "in"
+        "process": "getSecondHand",
+        "port": "selector"
       }
     },
     {
-      "src": {
-        "process": "makeSecondsDeg",
-        "port": "product"
-      },
+      "data": 60000,
       "tgt": {
-        "process": "merge",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 1
+        "process": "makeSecondRotation",
+        "port": "divisor"
       }
     },
     {
-      "src": {
-        "process": "split",
-        "port": "out"
-      },
+      "data": 3600000,
       "tgt": {
-        "process": "getSeconds",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 1
+        "process": "makeMinuteRotation",
+        "port": "divisor"
       }
     },
     {
-      "src": {
-        "process": "getMinutes",
-        "port": "out"
-      },
+      "data": 600,
       "tgt": {
-        "process": "makeMinutesDeg",
-        "port": "multiplicand"
-      },
-      "metadata": {
-        "route": 2
+        "process": "makeHourRotation",
+        "port": "divisor"
       }
     },
     {
-      "src": {
-        "process": "makeMinutesDeg",
-        "port": "product"
-      },
-      "tgt": {
-        "process": "merge",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 2
-      }
-    },
-    {
-      "src": {
-        "process": "split",
-        "port": "out"
-      },
-      "tgt": {
-        "process": "getHours",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 3
-      }
-    },
-    {
-      "src": {
-        "process": "getHours",
-        "port": "out"
-      },
-      "tgt": {
-        "process": "makeHoursDeg",
-        "port": "multiplicand"
-      },
-      "metadata": {
-        "route": 3
-      }
-    },
-    {
-      "src": {
-        "process": "makeHoursDeg",
-        "port": "product"
-      },
-      "tgt": {
-        "process": "merge",
-        "port": "in"
-      },
-      "metadata": {
-        "route": 3
-      }
-    },
-    {
-      "data": "getSeconds",
-      "tgt": {
-        "process": "getSeconds",
-        "port": "method"
-      }
-    },
-    {
-      "data": "now",
-      "tgt": {
-        "process": "sendStringNow",
-        "port": "string"
-      }
-    },
-    {
-      "data": 1000,
+      "data": 20,
       "tgt": {
         "process": "secondTick",
         "port": "interval"
-      }
-    },
-    {
-      "data": 6,
-      "tgt": {
-        "process": "makeSecondsDeg",
-        "port": "multiplier"
-      }
-    },
-    {
-      "data": 6,
-      "tgt": {
-        "process": "makeMinutesDeg",
-        "port": "multiplier"
-      }
-    },
-    {
-      "data": 30,
-      "tgt": {
-        "process": "makeHoursDeg",
-        "port": "multiplier"
       }
     }
   ]

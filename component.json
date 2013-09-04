@@ -21,7 +21,8 @@
     "noflo/noflo-dom": "*",
     "noflo/noflo-physics": "*",
     "noflo/noflo-math": "*",
-    "d4tocchini/noflo-draggabilly": "*"
+    "d4tocchini/noflo-draggabilly": "*",
+    "noflo/noflo-css": "*"
   },
   "scripts": [
     "src/dataflow-noflo.coffee",
