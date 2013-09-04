@@ -11630,7 +11630,7 @@ RotateElement = (function(_super) {
 
   RotateElement.prototype.setRotation = function(element, percent) {
     var degrees;
-    degrees = 360 * percent;
+    degrees = 360 * percent % 360;
     return this.setVendor(element, "transform", "rotate(" + degrees + "deg)");
   };
 
