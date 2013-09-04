@@ -103,7 +103,7 @@
       }
     },
     "Move": {
-      "component": "dom/MoveElement",
+      "component": "css/MoveElement",
       "metadata": {
         "x": 1480,
         "y": 700

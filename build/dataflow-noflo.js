@@ -11543,6 +11543,434 @@ exports.getComponent = function() {
 require.register("noflo-noflo-dom/component.json", function(exports, require, module){
 module.exports = JSON.parse('{"name":"noflo-dom","description":"Document Object Model components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-dom","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/GetElement.js","components/ListenDrag.js","components/ListenMouse.js","components/ListenScroll.js","components/ListenTouch.js","components/MoveElement.js","components/ReadHtml.js","components/WriteHtml.js","index.js"],"json":["component.json"],"noflo":{"components":{"GetElement":"components/GetElement.js","ListenDrag":"components/ListenDrag.js","ListenMouse":"components/ListenMouse.js","ListenScroll":"components/ListenScroll.js","ListenTouch":"components/ListenTouch.js","MoveElement":"components/MoveElement.js","WriteHtml":"components/WriteHtml.js","ReadHtml":"components/ReadHtml.js"}}}');
 });
+require.register("noflo-noflo-css/index.js", function(exports, require, module){
+/*
+ * This file can be used for general library features that are exposed as CommonJS modules
+ * that the components then utilize
+ */
+
+});
+require.register("noflo-noflo-css/components/MoveElement.js", function(exports, require, module){
+var MoveElement, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+MoveElement = (function(_super) {
+  __extends(MoveElement, _super);
+
+  MoveElement.prototype.description = 'Change the coordinates of a DOM element';
+
+  function MoveElement() {
+    var _this = this;
+    this.element = null;
+    this.inPorts = {
+      element: new noflo.Port('object'),
+      x: new noflo.Port('number'),
+      y: new noflo.Port('number'),
+      z: new noflo.Port('number')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.element = element;
+    });
+    this.inPorts.x.on('data', function(x) {
+      return _this.setPosition('left', "" + x + "px");
+    });
+    this.inPorts.y.on('data', function(y) {
+      return _this.setPosition('top', "" + y + "px");
+    });
+    this.inPorts.z.on('data', function(z) {
+      return _this.setPosition('zIndex', z);
+    });
+  }
+
+  MoveElement.prototype.setPosition = function(attr, value) {
+    this.element.style.position = 'absolute';
+    return this.element.style[attr] = value;
+  };
+
+  return MoveElement;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new MoveElement;
+};
+
+});
+require.register("noflo-noflo-css/components/RotateElement.js", function(exports, require, module){
+var RotateElement, noflo,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+RotateElement = (function(_super) {
+  __extends(RotateElement, _super);
+
+  RotateElement.prototype.description = 'Change the coordinates of a DOM element';
+
+  function RotateElement() {
+    var _this = this;
+    this.element = null;
+    this.inPorts = {
+      element: new noflo.Port('object'),
+      percent: new noflo.Port('number')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.element = element;
+    });
+    this.inPorts.percent.on('data', function(percent) {
+      if (_this.element) {
+        return _this.setRotation(_this.element, percent);
+      }
+    });
+  }
+
+  RotateElement.prototype.setRotation = function(element, percent) {
+    var degrees;
+    degrees = 360 * percent;
+    return this.setVendor(element, "transform", "rotate(" + degrees + "deg)");
+  };
+
+  RotateElement.prototype.setVendor = function(element, property, value) {
+    var propertyCap;
+    propertyCap = property.charAt(0).toUpperCase() + property.substr(1);
+    element.style["webkit" + propertyCap] = value;
+    element.style["moz" + propertyCap] = value;
+    element.style["ms" + propertyCap] = value;
+    element.style["o" + propertyCap] = value;
+    return element.style[property] = value;
+  };
+
+  return RotateElement;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new RotateElement;
+};
+
+});
+require.register("noflo-noflo-css/component.json", function(exports, require, module){
+module.exports = JSON.parse('{"name":"noflo-css","description":"Cascading Style Sheets components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-css","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/MoveElement.js","components/RotateElement.js","index.js"],"json":["component.json"],"noflo":{"components":{"MoveElement":"components/MoveElement.js","RotateElement":"components/RotateElement.js"}}}');
+});
+require.register("noflo-noflo-interaction/index.js", function(exports, require, module){
+/*
+ * This file can be used for general library features that are exposed as CommonJS modules
+ * that the components then utilize
+ */
+
+});
+require.register("noflo-noflo-interaction/components/ListenDrag.js", function(exports, require, module){
+var ListenDrag, noflo,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+ListenDrag = (function(_super) {
+  __extends(ListenDrag, _super);
+
+  ListenDrag.prototype.description = 'Listen to drag events on a DOM element';
+
+  function ListenDrag() {
+    this.dragend = __bind(this.dragend, this);
+    this.dragmove = __bind(this.dragmove, this);
+    this.dragstart = __bind(this.dragstart, this);
+    var _this = this;
+    this.inPorts = {
+      element: new noflo.Port('object')
+    };
+    this.outPorts = {
+      start: new noflo.ArrayPort('object'),
+      movex: new noflo.ArrayPort('number'),
+      movey: new noflo.ArrayPort('number'),
+      end: new noflo.ArrayPort('object')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.subscribe(element);
+    });
+  }
+
+  ListenDrag.prototype.subscribe = function(element) {
+    element.addEventListener('dragstart', this.dragstart, false);
+    element.addEventListener('drag', this.dragmove, false);
+    return element.addEventListener('dragend', this.dragend, false);
+  };
+
+  ListenDrag.prototype.dragstart = function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.outPorts.start.send(event);
+    return this.outPorts.start.disconnect();
+  };
+
+  ListenDrag.prototype.dragmove = function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.outPorts.movex.send(event.clientX);
+    return this.outPorts.movey.send(event.clientY);
+  };
+
+  ListenDrag.prototype.dragend = function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.outPorts.movex.isConnected()) {
+      this.outPorts.movex.disconnect();
+    }
+    if (this.outPorts.movey.isConnected()) {
+      this.outPorts.movey.disconnect();
+    }
+    this.outPorts.end.send(event);
+    return this.outPorts.end.disconnect();
+  };
+
+  return ListenDrag;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new ListenDrag;
+};
+
+});
+require.register("noflo-noflo-interaction/components/ListenMouse.js", function(exports, require, module){
+var ListenMouse, noflo,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+ListenMouse = (function(_super) {
+  __extends(ListenMouse, _super);
+
+  ListenMouse.prototype.description = 'Listen to mouse events on a DOM element';
+
+  function ListenMouse() {
+    this.click = __bind(this.click, this);
+    var _this = this;
+    this.inPorts = {
+      element: new noflo.Port('object')
+    };
+    this.outPorts = {
+      click: new noflo.ArrayPort('object')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.subscribe(element);
+    });
+  }
+
+  ListenMouse.prototype.subscribe = function(element) {
+    return element.addEventListener('click', this.click, false);
+  };
+
+  ListenMouse.prototype.click = function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.outPorts.click.send(event);
+    return this.outPorts.click.disconnect();
+  };
+
+  return ListenMouse;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new ListenMouse;
+};
+
+});
+require.register("noflo-noflo-interaction/components/ListenScroll.js", function(exports, require, module){
+var ListenScroll, noflo,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+ListenScroll = (function(_super) {
+  __extends(ListenScroll, _super);
+
+  ListenScroll.prototype.description = 'Listen to scroll events';
+
+  function ListenScroll() {
+    this.scroll = __bind(this.scroll, this);
+    var _this = this;
+    this.inPorts = {
+      start: new noflo.Port
+    };
+    this.outPorts = {
+      top: new noflo.Port('number'),
+      bottom: new noflo.Port('number'),
+      left: new noflo.Port('number'),
+      right: new noflo.Port('number')
+    };
+    this.inPorts.start.on('data', function() {
+      return _this.subscribe();
+    });
+  }
+
+  ListenScroll.prototype.subscribe = function() {
+    return window.addEventListener('scroll', this.scroll, false);
+  };
+
+  ListenScroll.prototype.scroll = function(event) {
+    var bottom, left, right, top;
+    top = window.scrollY;
+    left = window.scrollX;
+    if (this.outPorts.top.isAttached()) {
+      this.outPorts.top.send(top);
+      this.outPorts.top.disconnect();
+    }
+    if (this.outPorts.bottom.isAttached()) {
+      bottom = top + window.innerHeight;
+      this.outPorts.bottom.send(bottom);
+      this.outPorts.bottom.disconnect();
+    }
+    if (this.outPorts.left.isAttached()) {
+      this.outPorts.left.send(left);
+      this.outPorts.left.disconnect();
+    }
+    if (this.outPorts.right.isAttached()) {
+      right = left + window.innerWidth;
+      this.outPorts.right.send(right);
+      return this.outPorts.right.disconnect();
+    }
+  };
+
+  return ListenScroll;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new ListenScroll;
+};
+
+});
+require.register("noflo-noflo-interaction/components/ListenTouch.js", function(exports, require, module){
+var ListenTouch, noflo,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+ListenTouch = (function(_super) {
+  __extends(ListenTouch, _super);
+
+  ListenTouch.prototype.description = 'Listen to touch events on a DOM element';
+
+  function ListenTouch() {
+    this.touchend = __bind(this.touchend, this);
+    this.touchmove = __bind(this.touchmove, this);
+    this.touchstart = __bind(this.touchstart, this);
+    var _this = this;
+    this.inPorts = {
+      element: new noflo.Port('object')
+    };
+    this.outPorts = {
+      start: new noflo.ArrayPort('object'),
+      movex: new noflo.ArrayPort('number'),
+      movey: new noflo.ArrayPort('number'),
+      end: new noflo.ArrayPort('object')
+    };
+    this.inPorts.element.on('data', function(element) {
+      return _this.subscribe(element);
+    });
+  }
+
+  ListenTouch.prototype.subscribe = function(element) {
+    element.addEventListener('touchstart', this.touchstart, false);
+    element.addEventListener('touchmove', this.touchmove, false);
+    return element.addEventListener('touchend', this.touchend, false);
+  };
+
+  ListenTouch.prototype.touchstart = function(event) {
+    var idx, touch, _i, _len, _ref;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.changedTouches) {
+      return;
+    }
+    if (!event.changedTouches.length) {
+      return;
+    }
+    _ref = event.changedTouches;
+    for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
+      touch = _ref[idx];
+      this.outPorts.start.beginGroup(idx);
+      this.outPorts.start.send(event);
+      this.outPorts.start.endGroup();
+    }
+    return this.outPorts.start.disconnect();
+  };
+
+  ListenTouch.prototype.touchmove = function(event) {
+    var idx, touch, _i, _len, _ref, _results;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.changedTouches) {
+      return;
+    }
+    if (!event.changedTouches.length) {
+      return;
+    }
+    _ref = event.changedTouches;
+    _results = [];
+    for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
+      touch = _ref[idx];
+      this.outPorts.movex.beginGroup(idx);
+      this.outPorts.movex.send(touch.pageX);
+      this.outPorts.movex.endGroup();
+      this.outPorts.movey.beginGroup(idx);
+      this.outPorts.movey.send(touch.pageY);
+      _results.push(this.outPorts.movey.endGroup());
+    }
+    return _results;
+  };
+
+  ListenTouch.prototype.touchend = function(event) {
+    var idx, touch, _i, _len, _ref;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.changedTouches) {
+      return;
+    }
+    if (!event.changedTouches.length) {
+      return;
+    }
+    if (this.outPorts.movex.isConnected()) {
+      this.outPorts.movex.disconnect();
+    }
+    if (this.outPorts.movey.isConnected()) {
+      this.outPorts.movey.disconnect();
+    }
+    _ref = event.changedTouches;
+    for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
+      touch = _ref[idx];
+      this.outPorts.end.beginGroup(idx);
+      this.outPorts.end.send(event);
+      this.outPorts.end.endGroup();
+    }
+    return this.outPorts.end.disconnect();
+  };
+
+  return ListenTouch;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new ListenTouch;
+};
+
+});
+require.register("noflo-noflo-interaction/component.json", function(exports, require, module){
+module.exports = JSON.parse('{"name":"noflo-interaction","description":"User interaction components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-interaction","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/ListenDrag.js","components/ListenMouse.js","components/ListenScroll.js","components/ListenTouch.js","index.js"],"json":["component.json"],"noflo":{"components":{"ListenDrag":"components/ListenDrag.js","ListenMouse":"components/ListenMouse.js","ListenScroll":"components/ListenScroll.js","ListenTouch":"components/ListenTouch.js"}}}');
+});
 require.register("noflo-noflo-physics/index.js", function(exports, require, module){
 /*
  * This file can be used for general library features of noflo-physics.
@@ -12030,119 +12458,6 @@ exports.getComponent = function() {
 require.register("d4tocchini-noflo-draggabilly/component.json", function(exports, require, module){
 module.exports = JSON.parse('{"name":"noflo-draggabilly","description":"Draggabilly components for the NoFlo flow-based programming environment","author":"D4 Tocchini <d4@rituwall.com>","repo":"d4tocchini/noflo-draggabilly","version":"0.0.1","keywords":["fbp","drag","dnd","draggable"],"dependencies":{"noflo/noflo":"*"},"scripts":["components/Draggabilly.js","index.js"],"json":["component.json"],"noflo":{"components":{"Draggabilly":"components/Draggabilly.js"}}}');
 });
-require.register("noflo-noflo-css/index.js", function(exports, require, module){
-/*
- * This file can be used for general library features that are exposed as CommonJS modules
- * that the components then utilize
- */
-
-});
-require.register("noflo-noflo-css/components/MoveElement.js", function(exports, require, module){
-var MoveElement, noflo,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-noflo = require('noflo');
-
-MoveElement = (function(_super) {
-  __extends(MoveElement, _super);
-
-  MoveElement.prototype.description = 'Change the coordinates of a DOM element';
-
-  function MoveElement() {
-    var _this = this;
-    this.element = null;
-    this.inPorts = {
-      element: new noflo.Port('object'),
-      x: new noflo.Port('number'),
-      y: new noflo.Port('number'),
-      z: new noflo.Port('number')
-    };
-    this.inPorts.element.on('data', function(element) {
-      return _this.element = element;
-    });
-    this.inPorts.x.on('data', function(x) {
-      return _this.setPosition('left', "" + x + "px");
-    });
-    this.inPorts.y.on('data', function(y) {
-      return _this.setPosition('top', "" + y + "px");
-    });
-    this.inPorts.z.on('data', function(z) {
-      return _this.setPosition('zIndex', z);
-    });
-  }
-
-  MoveElement.prototype.setPosition = function(attr, value) {
-    this.element.style.position = 'absolute';
-    return this.element.style[attr] = value;
-  };
-
-  return MoveElement;
-
-})(noflo.Component);
-
-exports.getComponent = function() {
-  return new MoveElement;
-};
-
-});
-require.register("noflo-noflo-css/components/RotateElement.js", function(exports, require, module){
-var RotateElement, noflo,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-noflo = require('noflo');
-
-RotateElement = (function(_super) {
-  __extends(RotateElement, _super);
-
-  RotateElement.prototype.description = 'Change the coordinates of a DOM element';
-
-  function RotateElement() {
-    var _this = this;
-    this.element = null;
-    this.inPorts = {
-      element: new noflo.Port('object'),
-      percent: new noflo.Port('number')
-    };
-    this.inPorts.element.on('data', function(element) {
-      return _this.element = element;
-    });
-    this.inPorts.percent.on('data', function(percent) {
-      if (_this.element) {
-        return _this.setRotation(_this.element, percent);
-      }
-    });
-  }
-
-  RotateElement.prototype.setRotation = function(element, percent) {
-    var degrees;
-    degrees = 360 * percent;
-    return this.setVendor(element, "transform", "rotate(" + degrees + "deg)");
-  };
-
-  RotateElement.prototype.setVendor = function(element, property, value) {
-    var propertyCap;
-    propertyCap = property.charAt(0).toUpperCase() + property.substr(1);
-    element.style["webkit" + propertyCap] = value;
-    element.style["moz" + propertyCap] = value;
-    element.style["ms" + propertyCap] = value;
-    element.style["o" + propertyCap] = value;
-    return element.style[property] = value;
-  };
-
-  return RotateElement;
-
-})(noflo.Component);
-
-exports.getComponent = function() {
-  return new RotateElement;
-};
-
-});
-require.register("noflo-noflo-css/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo-css","description":"Cascading Style Sheets components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-css","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/MoveElement.js","components/RotateElement.js","index.js"],"json":["component.json"],"noflo":{"components":{"MoveElement":"components/MoveElement.js","RotateElement":"components/RotateElement.js"}}}');
-});
 require.register("dataflow-noflo/src/dataflow-noflo.js", function(exports, require, module){
 var Base, Dataflow, DataflowNoflo, Graph, NofloBase, NofloSubgraph, noflo;
 
@@ -12558,10 +12873,10 @@ NofloSubgraph.View = Subgraph.View.extend({
 
 });
 require.register("dataflow-noflo/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-physics":"*","noflo/noflo-math":"*","d4tocchini/noflo-draggabilly":"*","noflo/noflo-css":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
+module.exports = JSON.parse('{"name":"dataflow-noflo","description":"bergie/noflo graphs editable with meemoo/dataflow","author":"Forrest Oliphant <forrest@sembiki.com>","repo":"forresto/dataflow-noflo","version":"0.0.1","keywords":["fbp","noflo","graph","visual","dataflow"],"dependencies":{"meemoo/dataflow":"*","noflo/noflo":"*","noflo/noflo-core":"*","noflo/noflo-flow":"*","noflo/noflo-objects":"*","noflo/noflo-strings":"*","noflo/noflo-dom":"*","noflo/noflo-css":"*","noflo/noflo-interaction":"*","noflo/noflo-physics":"*","noflo/noflo-math":"*","d4tocchini/noflo-draggabilly":"*"},"scripts":["src/dataflow-noflo.js","src/component.js","src/subgraph.js"],"main":"src/dataflow-noflo.js","json":["component.json","graphs/Button.json"],"noflo":{"graphs":{"Button":"graphs/Button.json"}}}');
 });
 require.register("dataflow-noflo/graphs/Button.json", function(exports, require, module){
-module.exports = JSON.parse('{"processes":{"GetButton":{"component":"dom/GetElement"},"Listen":{"component":"dom/ListenMouse"},"GetClicked":{"component":"objects/GetObjectKey"},"GetValue":{"component":"dom/ReadHtml"}},"connections":[{"src":{"process":"GetButton","port":"element"},"tgt":{"process":"Listen","port":"element"}},{"src":{"process":"Listen","port":"click"},"tgt":{"process":"GetClicked","port":"in"}},{"data":"target","tgt":{"process":"GetClicked","port":"key"}},{"src":{"process":"GetClicked","port":"out"},"tgt":{"process":"GetValue","port":"container"}}],"exports":[{"private":"getbutton.selector","public":"selector"},{"private":"getbutton.in","public":"container"},{"private":"getvalue.html","public":"clicked"}]}');
+module.exports = JSON.parse('{"processes":{"GetButton":{"component":"dom/GetElement"},"Listen":{"component":"interaction/ListenMouse"},"GetClicked":{"component":"objects/GetObjectKey"},"GetValue":{"component":"dom/ReadHtml"}},"connections":[{"src":{"process":"GetButton","port":"element"},"tgt":{"process":"Listen","port":"element"}},{"src":{"process":"Listen","port":"click"},"tgt":{"process":"GetClicked","port":"in"}},{"data":"target","tgt":{"process":"GetClicked","port":"key"}},{"src":{"process":"GetClicked","port":"out"},"tgt":{"process":"GetValue","port":"container"}}],"exports":[{"private":"getbutton.selector","public":"selector"},{"private":"getbutton.in","public":"container"},{"private":"getvalue.html","public":"clicked"}]}');
 });
 require.alias("meemoo-dataflow/build/dataflow.build.js", "dataflow-noflo/deps/dataflow/build/dataflow.build.js");
 require.alias("meemoo-dataflow/build/dataflow.build.js", "dataflow-noflo/deps/dataflow/index.js");
@@ -12771,6 +13086,62 @@ require.alias("noflo-fbp/lib/fbp.js", "noflo-fbp/index.js");
 
 require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
 
+require.alias("noflo-noflo-css/components/MoveElement.js", "dataflow-noflo/deps/noflo-css/components/MoveElement.js");
+require.alias("noflo-noflo-css/components/RotateElement.js", "dataflow-noflo/deps/noflo-css/components/RotateElement.js");
+require.alias("noflo-noflo-css/index.js", "dataflow-noflo/deps/noflo-css/index.js");
+require.alias("noflo-noflo-css/index.js", "noflo-css/index.js");
+require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-css/deps/noflo/src/lib/Graph.js");
+require.alias("noflo-noflo/src/lib/InternalSocket.js", "noflo-noflo-css/deps/noflo/src/lib/InternalSocket.js");
+require.alias("noflo-noflo/src/lib/Port.js", "noflo-noflo-css/deps/noflo/src/lib/Port.js");
+require.alias("noflo-noflo/src/lib/ArrayPort.js", "noflo-noflo-css/deps/noflo/src/lib/ArrayPort.js");
+require.alias("noflo-noflo/src/lib/Component.js", "noflo-noflo-css/deps/noflo/src/lib/Component.js");
+require.alias("noflo-noflo/src/lib/AsyncComponent.js", "noflo-noflo-css/deps/noflo/src/lib/AsyncComponent.js");
+require.alias("noflo-noflo/src/lib/LoggingComponent.js", "noflo-noflo-css/deps/noflo/src/lib/LoggingComponent.js");
+require.alias("noflo-noflo/src/lib/ComponentLoader.js", "noflo-noflo-css/deps/noflo/src/lib/ComponentLoader.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/src/lib/NoFlo.js");
+require.alias("noflo-noflo/src/lib/Network.js", "noflo-noflo-css/deps/noflo/src/lib/Network.js");
+require.alias("noflo-noflo/src/components/Graph.js", "noflo-noflo-css/deps/noflo/src/components/Graph.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/index.js");
+require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
+require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
+
+require.alias("component-underscore/index.js", "noflo-noflo/deps/underscore/index.js");
+
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/lib/fbp.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/index.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-fbp/index.js");
+
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
+
+require.alias("noflo-noflo-interaction/components/ListenDrag.js", "dataflow-noflo/deps/noflo-interaction/components/ListenDrag.js");
+require.alias("noflo-noflo-interaction/components/ListenMouse.js", "dataflow-noflo/deps/noflo-interaction/components/ListenMouse.js");
+require.alias("noflo-noflo-interaction/components/ListenScroll.js", "dataflow-noflo/deps/noflo-interaction/components/ListenScroll.js");
+require.alias("noflo-noflo-interaction/components/ListenTouch.js", "dataflow-noflo/deps/noflo-interaction/components/ListenTouch.js");
+require.alias("noflo-noflo-interaction/index.js", "dataflow-noflo/deps/noflo-interaction/index.js");
+require.alias("noflo-noflo-interaction/index.js", "noflo-interaction/index.js");
+require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-interaction/deps/noflo/src/lib/Graph.js");
+require.alias("noflo-noflo/src/lib/InternalSocket.js", "noflo-noflo-interaction/deps/noflo/src/lib/InternalSocket.js");
+require.alias("noflo-noflo/src/lib/Port.js", "noflo-noflo-interaction/deps/noflo/src/lib/Port.js");
+require.alias("noflo-noflo/src/lib/ArrayPort.js", "noflo-noflo-interaction/deps/noflo/src/lib/ArrayPort.js");
+require.alias("noflo-noflo/src/lib/Component.js", "noflo-noflo-interaction/deps/noflo/src/lib/Component.js");
+require.alias("noflo-noflo/src/lib/AsyncComponent.js", "noflo-noflo-interaction/deps/noflo/src/lib/AsyncComponent.js");
+require.alias("noflo-noflo/src/lib/LoggingComponent.js", "noflo-noflo-interaction/deps/noflo/src/lib/LoggingComponent.js");
+require.alias("noflo-noflo/src/lib/ComponentLoader.js", "noflo-noflo-interaction/deps/noflo/src/lib/ComponentLoader.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-interaction/deps/noflo/src/lib/NoFlo.js");
+require.alias("noflo-noflo/src/lib/Network.js", "noflo-noflo-interaction/deps/noflo/src/lib/Network.js");
+require.alias("noflo-noflo/src/components/Graph.js", "noflo-noflo-interaction/deps/noflo/src/components/Graph.js");
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-interaction/deps/noflo/index.js");
+require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
+require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
+
+require.alias("component-underscore/index.js", "noflo-noflo/deps/underscore/index.js");
+
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/lib/fbp.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/index.js");
+require.alias("noflo-fbp/lib/fbp.js", "noflo-fbp/index.js");
+
+require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
+
 require.alias("noflo-noflo-physics/components/Spring.js", "dataflow-noflo/deps/noflo-physics/components/Spring.js");
 require.alias("noflo-noflo-physics/index.js", "dataflow-noflo/deps/noflo-physics/index.js");
 require.alias("noflo-noflo-physics/index.js", "noflo-physics/index.js");
@@ -12842,33 +13213,6 @@ require.alias("noflo-noflo/src/lib/NoFlo.js", "d4tocchini-noflo-draggabilly/deps
 require.alias("noflo-noflo/src/lib/Network.js", "d4tocchini-noflo-draggabilly/deps/noflo/src/lib/Network.js");
 require.alias("noflo-noflo/src/components/Graph.js", "d4tocchini-noflo-draggabilly/deps/noflo/src/components/Graph.js");
 require.alias("noflo-noflo/src/lib/NoFlo.js", "d4tocchini-noflo-draggabilly/deps/noflo/index.js");
-require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
-require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
-
-require.alias("component-underscore/index.js", "noflo-noflo/deps/underscore/index.js");
-
-require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/lib/fbp.js");
-require.alias("noflo-fbp/lib/fbp.js", "noflo-noflo/deps/fbp/index.js");
-require.alias("noflo-fbp/lib/fbp.js", "noflo-fbp/index.js");
-
-require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo/index.js");
-
-require.alias("noflo-noflo-css/components/MoveElement.js", "dataflow-noflo/deps/noflo-css/components/MoveElement.js");
-require.alias("noflo-noflo-css/components/RotateElement.js", "dataflow-noflo/deps/noflo-css/components/RotateElement.js");
-require.alias("noflo-noflo-css/index.js", "dataflow-noflo/deps/noflo-css/index.js");
-require.alias("noflo-noflo-css/index.js", "noflo-css/index.js");
-require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-css/deps/noflo/src/lib/Graph.js");
-require.alias("noflo-noflo/src/lib/InternalSocket.js", "noflo-noflo-css/deps/noflo/src/lib/InternalSocket.js");
-require.alias("noflo-noflo/src/lib/Port.js", "noflo-noflo-css/deps/noflo/src/lib/Port.js");
-require.alias("noflo-noflo/src/lib/ArrayPort.js", "noflo-noflo-css/deps/noflo/src/lib/ArrayPort.js");
-require.alias("noflo-noflo/src/lib/Component.js", "noflo-noflo-css/deps/noflo/src/lib/Component.js");
-require.alias("noflo-noflo/src/lib/AsyncComponent.js", "noflo-noflo-css/deps/noflo/src/lib/AsyncComponent.js");
-require.alias("noflo-noflo/src/lib/LoggingComponent.js", "noflo-noflo-css/deps/noflo/src/lib/LoggingComponent.js");
-require.alias("noflo-noflo/src/lib/ComponentLoader.js", "noflo-noflo-css/deps/noflo/src/lib/ComponentLoader.js");
-require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/src/lib/NoFlo.js");
-require.alias("noflo-noflo/src/lib/Network.js", "noflo-noflo-css/deps/noflo/src/lib/Network.js");
-require.alias("noflo-noflo/src/components/Graph.js", "noflo-noflo-css/deps/noflo/src/components/Graph.js");
-require.alias("noflo-noflo/src/lib/NoFlo.js", "noflo-noflo-css/deps/noflo/index.js");
 require.alias("component-emitter/index.js", "noflo-noflo/deps/emitter/index.js");
 require.alias("component-indexof/index.js", "component-emitter/deps/indexof/index.js");
 
