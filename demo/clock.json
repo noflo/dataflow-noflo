@@ -7,106 +7,106 @@
     "getTimezoneOffset": {
       "component": "objects/CallMethod",
       "metadata": {
-        "x": 339,
-        "y": 663
+        "x": 414,
+        "y": 627
       }
     },
     "makeTimezoneAngle": {
       "component": "math/Divide",
       "metadata": {
-        "x": 581,
-        "y": 659
+        "x": 621,
+        "y": 625
       }
     },
     "fixHourAngle": {
       "component": "math/Add",
       "metadata": {
-        "x": 802,
-        "y": 585
+        "x": 845,
+        "y": 529
       }
     },
     "makeHourRotation": {
       "component": "math/Divide",
       "metadata": {
-        "x": 556,
-        "y": 541.5
+        "x": 621,
+        "y": 523.5
       }
     },
     "rotateMinuteHand": {
       "component": "css/RotateElement",
       "metadata": {
-        "x": 850,
-        "y": 280
+        "x": 1110,
+        "y": 275
       }
     },
     "rotateHourHand": {
       "component": "css/RotateElement",
       "metadata": {
-        "x": 1014,
-        "y": 454
+        "x": 1116,
+        "y": 428
       }
     },
     "getSecondHand": {
       "component": "dom/GetElement",
       "metadata": {
-        "x": 609,
-        "y": 37
+        "x": 849,
+        "y": 100
       }
     },
     "getMinuteHand": {
       "component": "dom/GetElement",
       "metadata": {
-        "x": 615,
-        "y": 244
+        "x": 854,
+        "y": 259
       }
     },
     "getHourHand": {
       "component": "dom/GetElement",
       "metadata": {
-        "x": 616,
-        "y": 441
+        "x": 841,
+        "y": 416
       }
     },
     "makeSecondRotation": {
       "component": "math/Divide",
       "metadata": {
-        "x": 610,
-        "y": 140
+        "x": 615,
+        "y": 170
       }
     },
     "rotateSecondHand": {
       "component": "css/RotateElement",
       "metadata": {
-        "x": 847,
-        "y": 60
+        "x": 1105,
+        "y": 117
       }
     },
     "split": {
       "component": "core/Split",
       "metadata": {
-        "x": 342,
-        "y": 337
+        "x": 346,
+        "y": 319
       }
     },
     "secondTick": {
       "component": "core/RunInterval",
       "metadata": {
-        "x": 337,
-        "y": 126
+        "x": 341,
+        "y": 108
       }
     },
     "createDate": {
       "component": "objects/CreateDate",
       "metadata": {
-        "x": 335,
-        "y": 237
+        "x": 339,
+        "y": 219
       }
     },
     "makeMinuteRotation": {
       "component": "math/Divide",
       "metadata": {
-        "x": 613,
-        "y": 343
+        "x": 617,
+        "y": 325
       }
     }
   },
@@ -131,7 +131,7 @@
         "port": "dividend"
       },
       "metadata": {
-        "route": 5
+        "route": 1
       }
     },
     {
@@ -154,7 +154,7 @@
         "port": "percent"
       },
       "metadata": {
-        "route": 5
+        "route": 1
       }
     },
     {
@@ -167,7 +167,7 @@
         "port": "dividend"
       },
       "metadata": {
-        "route": 8
+        "route": 5
       }
     },
     {
@@ -203,7 +203,7 @@
         "port": "percent"
       },
       "metadata": {
-        "route": 8
+        "route": 5
       }
     },
     {
@@ -257,6 +257,9 @@
       "tgt": {
         "process": "fixHourAngle",
         "port": "augend"
+      },
+      "metadata": {
+        "route": 10
       }
     },
     {
