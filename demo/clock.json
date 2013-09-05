@@ -4,25 +4,46 @@
   },
   "exports": [],
   "processes": {
+    "getTimezoneOffset": {
+      "component": "objects/CallMethod",
+      "metadata": {
+        "x": 339,
+        "y": 663
+      }
+    },
+    "makeTimezoneAngle": {
+      "component": "math/Divide",
+      "metadata": {
+        "x": 581,
+        "y": 659
+      }
+    },
+    "fixHourAngle": {
+      "component": "math/Add",
+      "metadata": {
+        "x": 802,
+        "y": 585
+      }
+    },
     "makeHourRotation": {
       "component": "math/Divide",
       "metadata": {
-        "x": 618.796875,
-        "y": 537.5
+        "x": 556,
+        "y": 541.5
       }
     },
     "rotateMinuteHand": {
       "component": "css/RotateElement",
       "metadata": {
-        "x": 850.796875,
+        "x": 850,
         "y": 280
       }
     },
     "rotateHourHand": {
       "component": "css/RotateElement",
       "metadata": {
-        "x": 855.796875,
-        "y": 493
+        "x": 1014,
+        "y": 454
       }
     },
     "getSecondHand": {
@@ -197,8 +218,61 @@
     },
     {
       "src": {
+        "process": "secondTick",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "createDate",
+        "port": "in"
+      }
+    },
+    {
+      "src": {
+        "process": "split",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "getTimezoneOffset",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 0
+      }
+    },
+    {
+      "src": {
+        "process": "getTimezoneOffset",
+        "port": "out"
+      },
+      "tgt": {
+        "process": "makeTimezoneAngle",
+        "port": "dividend"
+      }
+    },
+    {
+      "src": {
         "process": "makeHourRotation",
         "port": "quotient"
+      },
+      "tgt": {
+        "process": "fixHourAngle",
+        "port": "augend"
+      }
+    },
+    {
+      "src": {
+        "process": "makeTimezoneAngle",
+        "port": "quotient"
+      },
+      "tgt": {
+        "process": "fixHourAngle",
+        "port": "addend"
+      }
+    },
+    {
+      "src": {
+        "process": "fixHourAngle",
+        "port": "sum"
       },
       "tgt": {
         "process": "rotateHourHand",
@@ -206,16 +280,6 @@
       },
       "metadata": {
         "route": 10
-      }
-    },
-    {
-      "src": {
-        "process": "secondTick",
-        "port": "out"
-      },
-      "tgt": {
-        "process": "createDate",
-        "port": "in"
       }
     },
     {
@@ -261,17 +325,31 @@
       }
     },
     {
-      "data": 600,
+      "data": 20,
+      "tgt": {
+        "process": "secondTick",
+        "port": "interval"
+      }
+    },
+    {
+      "data": "getTimezoneOffset",
+      "tgt": {
+        "process": "getTimezoneOffset",
+        "port": "method"
+      }
+    },
+    {
+      "data": "43200000",
       "tgt": {
         "process": "makeHourRotation",
         "port": "divisor"
       }
     },
     {
-      "data": 20,
+      "data": "-720",
       "tgt": {
-        "process": "secondTick",
-        "port": "interval"
+        "process": "makeTimezoneAngle",
+        "port": "divisor"
       }
     }
   ]
