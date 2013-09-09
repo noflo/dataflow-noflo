@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-09-01 (5:22:17 PM EDT)
+/*! dataflow.js - v0.0.7 - 2013-09-10 (1:42:51 AM GMT+0300)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -1943,7 +1943,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         }
       } else {
         // Deselect all
-        this.model.parentGraph.nodes.invoke("set",{selected:false});
+        this.model.parentGraph.edges.invoke("set", {selected:false});
+        this.model.parentGraph.nodes.invoke("set", {selected:false});
         this.model.parentGraph.view.fade();
         selected = true;
         this.model.set("selected", true);
@@ -2780,6 +2781,23 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     '<h1 class="dataflow-edge-inspector-title">Edge</h1>'+
     '<div class="dataflow-edge-inspector-route-choose"></div>';
     // '<div class="dataflow-edge-inspector-route route<%- route %>"><%- route %></div>';
+
+  var addClass = function (el, name) {
+    if (el.classList) {
+      el.classList.add(name);
+    } else {
+      // Works only here
+      el.className = "dataflow-edge " + name;
+    }
+  };
+
+  var removeClass = function (el, name) {
+    if (el.classList) {
+      el.classList.remove(name);
+    } else {
+      el.className = "dataflow-edge"; 
+    }
+  };
   
   Edge.View = Backbone.View.extend({
     tagName: "div",
@@ -2894,10 +2912,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       if (this.model.source.parentNode.get("selected") || this.model.target.parentNode.get("selected")) {
         return;
       }
-      this.el.setAttribute("class", "dataflow-edge fade");
+      addClass(this.el, "fade");
     },
     unfade: function(){
-      this.el.setAttribute("class", "dataflow-edge");
+      removeClass(this.el, "fade");
     },
     selectedChange: function () {
       if (this.model.get("selected")){
@@ -2907,10 +2925,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
     },
     highlight: function(){
-      this.el.setAttribute("class", "dataflow-edge highlight");
+      addClass(this.el, "highlight");
     },
     unhighlight: function(){
-      this.el.setAttribute("class", "dataflow-edge");
+      removeClass(this.el, "highlight");
     },
     edgePath: function(positions){
       var extend = 20;
@@ -3005,6 +3023,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       } else {
         // Deselect all and select this
         selected = true;
+        this.model.parentGraph.nodes.invoke("set", {selected:false});
         this.model.collection.invoke("set", {selected:false});
       }
       this.model.set({selected:selected});
