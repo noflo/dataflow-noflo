@@ -12645,11 +12645,18 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
     });
   });
   dataflow.on("edge:add", function(dfGraph, edge) {
+    var error;
     if (dfGraph !== graph.dataflowGraph) {
       return;
     }
     if (edge.nofloEdge == null) {
-      edge.nofloEdge = graph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id);
+      try {
+        edge.nofloEdge = graph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id, {
+          route: edge.get('route')
+        });
+      } catch (_error) {
+        error = _error;
+      }
     }
     return edge.on('change:route', function() {
       return edge.nofloEdge.metadata.route = edge.get('route');

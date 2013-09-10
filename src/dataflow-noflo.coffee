@@ -140,7 +140,11 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
   dataflow.on "edge:add", (dfGraph, edge) ->
     return unless dfGraph is graph.dataflowGraph
     unless edge.nofloEdge?
-      edge.nofloEdge = graph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id
+      try
+        edge.nofloEdge = graph.addEdge edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id,
+          route: edge.get 'route'
+      catch error
+        # Not added, probably multiple w/o array port https://github.com/noflo/noflo/issues/90
 
     edge.on 'change:route', ->
       edge.nofloEdge.metadata.route = edge.get 'route'
