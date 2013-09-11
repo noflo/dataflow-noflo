@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-09-11 (6:12:31 PM GMT+0300)
+/*! dataflow.js - v0.0.7 - 2013-09-11 (6:28:12 PM GMT+0300)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -3446,6 +3446,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       '</form>'
     );
     var $code = $form.find(".code");
+
+    $code.keydown(function(event){
+      event.stopPropagation();
+    });
 
     dataflow.addPlugin({
       id: "source", 
