@@ -109,10 +109,11 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
   dataflow.on "node:add", (dfGraph, node) ->
     return unless dfGraph is graph.dataflowGraph
     unless node.nofloNode?
-      node.nofloNode = graph.addNode node.id, node.type,
+      # Convert ID to string
+      node.nofloNode = graph.addNode node.id+"", node.type,
         x: node.get "x"
         y: node.get "y"
-    # sync rename
+    # Sync rename
     node.on "change:label", (node, newName) ->
       oldName = node.nofloNode.id
       graph.renameNode oldName, newName
