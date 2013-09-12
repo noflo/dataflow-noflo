@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-09-11 (10:33:28 PM GMT+0300)
+/*! dataflow.js - v0.0.7 - 2013-09-12 (3:23:10 PM GMT+0300)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -2750,16 +2750,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     return svg;
   };
 
-  var inspectTemplate = 
-    '<h1 class="dataflow-edge-inspector-title">Edge</h1>'+
-    '<div class="dataflow-edge-inspector-route-choose"></div>';
-    // '<div class="dataflow-edge-inspector-route route<%- route %>"><%- route %></div>';
-
   var addClass = function (el, name) {
     if (el.classList) {
       el.classList.add(name);
     } else {
-      // Works only here
       el.className = "dataflow-edge " + name;
     }
   };
@@ -2776,7 +2770,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     tagName: "div",
     className: "dataflow-edge",
     positions: null,
-    inspectTemplate: _.template(inspectTemplate),
     initialize: function() {
       this.positions = {
         from: null, 
@@ -3112,7 +3105,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   var Edge = Dataflow.prototype.module("edge");
 
   var template = 
-    '<h1 class="dataflow-plugin-inspector-title">Edge</h1>'+
+    '<div class="dataflow-plugin-inspector-title">'+
+      '<h1>Edge</h1>'+
+      '<h2 class="dataflow-edge-inspector-id"><%- id %></h2>'+
+    '</div>'+
     '<div class="dataflow-edge-inspector-route-choose"></div>';
   
   Edge.InspectView = Backbone.View.extend({
@@ -3130,6 +3126,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         this.model.set("route", route);
       }.bind(this);
       
+      // Make buttons
       for (var i=0; i<12; i++) {
         var button = $("<button>")
           .data("route", i)
@@ -3142,6 +3139,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       }
 
       this.listenTo(this.model, "change:route", this.render);
+      this.listenTo(this.model, "remove", this.remove);
     },
     render: function(){
       var route = this.model.get("route");
@@ -3151,15 +3149,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
       return this;
     },
-    showInspector: function(){
-      this.model.parentGraph.dataflow.showMenu("inspector");
-      var $inspector = this.model.parentGraph.dataflow.$(".dataflow-plugin-inspector");
-      $inspector.children().detach();
-      $inspector.append( this.getInspect() );
-
-      var $choose = this.$inspect.children(".dataflow-edge-inspector-route-choose");
-      $choose.children().removeClass("active");
-      $choose.children(".route"+this.model.get("route")).addClass("active");
+    remove: function(){
+      this.model.parentGraph.dataflow.hideMenu();
+      this.$el.remove();
     }
   });
 
