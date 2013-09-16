@@ -12635,7 +12635,7 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
       return;
     }
     if (node.nofloNode == null) {
-      node.nofloNode = graph.addNode(node.id + "", node.type, {
+      node.nofloNode = graph.addNode(node.id.toString(), node.type, {
         x: node.get("x"),
         y: node.get("y")
       });

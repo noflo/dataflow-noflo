@@ -110,7 +110,7 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
     return unless dfGraph is graph.dataflowGraph
     unless node.nofloNode?
       # Convert ID to string
-      node.nofloNode = graph.addNode node.id+"", node.type,
+      node.nofloNode = graph.addNode node.id.toString(), node.type,
         x: node.get "x"
         y: node.get "y"
     # Sync rename
