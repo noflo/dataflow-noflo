@@ -12692,7 +12692,7 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
     }
     if (edge.nofloEdge == null) {
       try {
-        edge.nofloEdge = graph.addEdge(edge.source.parentNode.id, edge.source.id, edge.target.parentNode.id, edge.target.id, {
+        edge.nofloEdge = graph.addEdge(edge.source.parentNode.id.toString(), edge.source.id, edge.target.parentNode.id.toString(), edge.target.id, {
           route: edge.get('route')
         });
       } catch (_error) {
