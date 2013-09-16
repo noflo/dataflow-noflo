@@ -142,7 +142,7 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
     return unless dfGraph is graph.dataflowGraph
     unless edge.nofloEdge?
       try
-        edge.nofloEdge = graph.addEdge edge.source.parentNode.id.toString(), edge.source.id, edge.target.parentNode.id.toString(), edge.target.id,
+        edge.nofloEdge = graph.addEdge edge.source.parentNode.nofloNode.id, edge.source.id, edge.target.parentNode.nofloNode.id, edge.target.id,
           route: edge.get 'route'
       catch error
         # Not added, probably multiple w/o array port https://github.com/noflo/noflo/issues/90
