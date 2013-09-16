@@ -6536,7 +6536,7 @@ Graph = (function(_super) {
         continue;
       }
       if (initializer.to.node === node.id) {
-        this.removeEdge(initializer.to.node, initializer.to.port);
+        this.removeInitial(initializer.to.node, initializer.to.port);
       }
     }
     this.emit('removeNode', node);
