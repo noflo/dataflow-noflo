@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-09-12 (3:23:10 PM GMT+0300)
+/*! dataflow.js - v0.0.7 - 2013-09-17 (4:39:34 PM GMT+0200)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -564,12 +564,14 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.el = document.createElement("div");
       this.el.className = "dataflow";
       this.$el = $(this.el);
-      var menu = $('<div class="dataflow-menu">');
-      var self = this;
-      var menuClose = $('<button class="dataflow-menu-close icon-remove"></button>')
-        .click( function(){ self.hideMenu(); } )
-        .appendTo(menu);
-      this.$el.append(menu);
+
+      // Setup cards
+      var Card = Dataflow.prototype.module("card");
+      this.shownCards = new Card.Collection();
+      this.shownCards.view = new Card.CollectionView({
+        collection: this.shownCards
+      });
+      this.$el.append(this.shownCards.view.$el);
 
       // Debug mode
       this.debug = this.get("debug");
@@ -687,27 +689,41 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       this.plugins[name] = {};
       return this.plugins[name];
     },
-    hideMenu: function () {
-      this.$el.removeClass("menu-shown");
+    addCard: function (card, leaveUnpinned) {
+      if (!leaveUnpinned) {
+        // Clear unpinned
+        this.hideCards();
+      }
+      if (this.shownCards.get(card)) {
+        // Bring to top
+        this.shownCards.view.bringToTop(card);
+      } else {
+        // Add to collection
+        this.shownCards.add(card);
+      }
     },
-    showMenu: function (id) {
-      this.$el.addClass("menu-shown");
-      this.$(".dataflow-menuitem").removeClass("shown");
-      this.$(".dataflow-menuitem-"+id).addClass("shown");
+    removeCard: function (card) {
+      this.shownCards.remove(card);
+    },
+    hideCards: function () {
+      // Clear unpinned
+      var unpinned = this.shownCards.where({pinned:false});
+      this.shownCards.remove(unpinned);
     },
     addPlugin: function (info) {
       if (info.menu) {
-        var menu = $("<div>")
-          .addClass("dataflow-menuitem dataflow-menuitem-"+info.id)
-          .append(info.menu);
-        this.$(".dataflow-menu").append( menu );
+        var Card = Dataflow.prototype.module("card");
+        var card = new Card.Model({
+          dataflow: this,
+          card: {el:info.menu} // HACK since plugins are not bb views
+        });
 
         this.actionBar.get('actions').add({
           id: info.id,
           icon: info.icon,
           label: info.name,
           showLabel: false,
-          action: function(){ this.showMenu(info.id); }
+          action: function(){ this.addCard(card); }
         });
       }
     },
@@ -818,8 +834,10 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
   // Simple collection view
   Backbone.CollectionView = Backbone.Model.extend({
     // this.tagName and this.itemView should be set
+    prepend: false,
     initialize: function(options){
       this.el = document.createElement(this.tagName);
+      this.el.className = this.className;
       this.$el = $(this.el);
       this.parent = options.parent;
       var collection = this.get("collection");
@@ -828,11 +846,18 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       collection.on("remove", this.removeItem, this);
     },
     addItem: function(item){
-      item.view = new this.itemView({
-        model:item,
-        parent: this.parent
-      });
-      this.$el.append(item.view.render().el);
+      if (!item.view) {
+        item.view = new this.itemView({
+          model:item,
+          parent: this.parent
+        });
+        item.view.render();
+      }
+      if (this.prepend) {
+        this.$el.prepend(item.view.el);
+      } else {
+        this.$el.append(item.view.el);
+      }
     },
     removeItem: function(item){
       item.view.remove();
@@ -1640,7 +1665,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       // }, this);
       this.model.trigger("selectionChanged");
       this.unfade();
-      this.model.dataflow.hideMenu();
+      this.model.dataflow.hideCards();
     },
     fade: function () {
       this.model.nodes.each(function(node){
@@ -1897,8 +1922,11 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         toggle = true;
         selected = !selected;
         this.model.set("selected", selected);
-        if (!selected) {
+        if (selected) {
+          this.showInspector(true);
+        } else {
           this.fade();
+          this.hideInspector();
         }
       } else {
         // Deselect all
@@ -1916,15 +1944,20 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     inspector: null,
     getInspector: function () {
       if (!this.inspector) {
-        this.inspector = new Node.InspectView({model:this.model});
+        var inspect = new Node.InspectView({model:this.model});
+        var Card = Dataflow.prototype.module("card");
+        this.inspector = new Card.Model({
+          dataflow: this.model.parentGraph.dataflow,
+          card: inspect
+        });
       }
       return this.inspector;
     },
-    showInspector: function () {
-      this.model.parentGraph.dataflow.showMenu("inspector");
-      var $inspectMenu = this.model.parentGraph.dataflow.$(".dataflow-plugin-inspector");
-      $inspectMenu.children().detach();
-      $inspectMenu.append( this.getInspector().el );
+    showInspector: function(leaveUnpinned){
+      this.model.parentGraph.dataflow.addCard( this.getInspector(), leaveUnpinned );
+    },
+    hideInspector: function () {
+      this.model.parentGraph.dataflow.removeCard( this.getInspector() );
     },
     fade: function(){
       this.$el.addClass("fade");
@@ -2981,11 +3014,12 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       if (event) {
         event.stopPropagation();
       }
-      var selected;
+      var selected, leaveUnpinned;
       if (event && (event.ctrlKey || event.metaKey)) {
         // Toggle
         selected = this.model.get("selected");
         selected = !selected;
+        leaveUnpinned = true;
       } else {
         // Deselect all and select this
         selected = true;
@@ -2997,7 +3031,9 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         this.bringToTop();
         this.model.trigger("select");
         this.unfade();
-        this.showInspector();
+        this.showInspector(leaveUnpinned);
+      } else {
+        this.hideInspector();
       }
       // Fade all and highlight related
       this.model.parentGraph.view.fade();
@@ -3016,20 +3052,106 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
     inspector: null,
     getInspector: function () {
       if (!this.inspector) {
-        this.inspector = new Edge.InspectView({model:this.model});
+        var inspect = new Edge.InspectView({model:this.model});
+        var Card = Dataflow.prototype.module("card");
+        this.inspector = new Card.Model({
+          dataflow: this.model.parentGraph.dataflow,
+          card: inspect
+        });
       }
       return this.inspector;
     },
-    showInspector: function(){
-      this.model.parentGraph.dataflow.showMenu("inspector");
-      var $inspector = this.model.parentGraph.dataflow.$(".dataflow-plugin-inspector");
-      $inspector.children().detach();
-      $inspector.append( this.getInspector().el );
+    showInspector: function(leaveUnpinned){
+      this.model.parentGraph.dataflow.addCard( this.getInspector(), leaveUnpinned );
+    },
+    hideInspector: function () {
+      this.model.parentGraph.dataflow.removeCard( this.getInspector() );
     }
 
   });
 
 }(Dataflow) );
+
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  Card.Model = Backbone.Model.extend({
+    defaults: {
+      pinned: false
+    },
+    initialize: function () {
+      this.dataflow = this.get("dataflow");
+    },
+    hide: function () {
+      this.dataflow.shownCards.remove( this );
+    }
+  });
+
+  Card.Collection = Backbone.Collection.extend({
+    model: Card.Model
+  });
+
+}(Dataflow));
+
+(function(Dataflow){
+
+  var Card = Dataflow.prototype.module("card");
+
+  var template = 
+    '<div class="dataflow-card-control">'+
+      '<button title="pin" class="dataflow-card-pin icon-pushpin"></button>'+
+      '<button title="close" class="dataflow-card-close icon-remove"></button>'+
+    '</div>';
+
+  Card.View = Backbone.View.extend({
+    tagName: "div",
+    className: "dataflow-card",
+    template: _.template(template),
+    events: {
+      "click .dataflow-card-pin": "pin",
+      "click .dataflow-card-close": "hide"
+    },
+    initialize: function () {
+      this.$el.html(this.template());
+      this.$el.append(this.model.get("card").el);
+      this.listenTo(this.model, "change:pinned", this.pinnedChanged);
+      this.pinnedChanged();
+    },
+    pin: function () {
+      var pinned = !this.model.get("pinned");
+      this.model.set("pinned", pinned);
+      if (!pinned) {
+        this.hide();
+      }
+    },
+    pinnedChanged: function () {
+      if ( this.model.get("pinned") ) {
+        this.$(".dataflow-card-pin").addClass("active");
+      } else {
+        this.$(".dataflow-card-pin").removeClass("active");
+      }
+    },
+    hide: function () {
+      this.model.set("pinned", false);
+      this.model.hide();
+    },
+    remove: function () {
+      this.$el.detach();
+    }
+  });
+
+  Card.CollectionView = Backbone.CollectionView.extend({
+    tagName: "div",
+    className: "dataflow-cards",
+    itemView: Card.View,
+    prepend: true,
+    bringToTop: function (card) {
+      this.$el.prepend( card.view.el );
+    }
+  });
+
+}(Dataflow));
 
 ( function(Dataflow) {
 
@@ -3148,10 +3270,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       $choose.children(".route"+route).addClass("active");
 
       return this;
-    },
-    remove: function(){
-      this.model.parentGraph.dataflow.hideMenu();
-      this.$el.remove();
     }
   });
 
@@ -3231,7 +3349,7 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         var connectedTarget = _.any(copied.nodes, function(node){
           return (edge.target.parentNode.id === node.id);
         });
-        if (connectedSource && connectedTarget){
+        if (connectedSource || connectedTarget){
           copied.edges.push( JSON.parse(JSON.stringify(edge)) );
         }
       });
@@ -3580,31 +3698,19 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
   Inspector.initialize = function(dataflow){
 
-    var $inspector = $(
-      '<div class="dataflow-plugin-inspector"></div>'
-    );
-
-    // Doing this manually instead of dataflow.addPlugin()
-    var $menu = $("<div>")
-      .addClass("dataflow-menuitem dataflow-menuitem-inspector")
-      .append($inspector);
-    dataflow.$(".dataflow-menu").append($menu);
-
-    var lastSelected = null;
-
-    function updateInspector(){
-      if (lastSelected) {
-        if (lastSelected.view) {
-          $inspector.children().detach();
-          $inspector.append( lastSelected.view.getInspector().el );
-        }
-      }
-    }
-    // Inspector.updateInspector = updateInspector;
-
     function showInspector(){
-      dataflow.showMenu("inspector");
-      updateInspector();
+      var selectedNodes = dataflow.currentGraph.nodes.where({selected:true});
+      selectedNodes.forEach(function(node){
+        var inspector = node.view.getInspector();
+        inspector.set("pinned", true);
+        dataflow.addCard( inspector );
+      });
+      var selectedEdges = dataflow.currentGraph.edges.where({selected:true});
+      selectedEdges.forEach(function(edge){
+        var inspector = edge.view.getInspector();
+        inspector.set("pinned", true);
+        dataflow.addCard( inspector );
+      });
     }
 
     dataflow.addContext({
@@ -3614,42 +3720,6 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       action: showInspector,
       contexts: ["one", "twoplus"]
     });
-
-    function selectNode (graph, node) {
-      if (lastSelected !== node) {
-        lastSelected = node;
-        if ($menu.is(':visible')){
-          updateInspector();
-        }
-      }
-    }
-
-    function updateInspectorEdge (edge) {
-      $inspector.children().detach();
-      $inspector.append( edge.view.getInspector().el );
-    }
-
-    function selectEdge (graph, edge) {
-      if (lastSelected !== edge) {
-        lastSelected = edge;
-        if ($menu.is(':visible')){
-          updateInspectorEdge(edge);
-        }
-      }
-    }
-
-    Inspector.listeners = function(boo){
-      if (boo) {
-        // Selection changes
-        dataflow.on("select:node", selectNode);
-        dataflow.on("select:edge", selectEdge);
-      } else {
-        // Custom
-        dataflow.off("select:node", selectNode);
-        dataflow.off("select:edge", selectEdge);
-      }
-    };
-    Inspector.listeners(true);
 
   };
 
