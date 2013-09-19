@@ -117,9 +117,16 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
     node.on "change:label", (node, newName) ->
       oldName = node.nofloNode.id
       graph.renameNode oldName, newName
+    # Sync position
     node.on "change:x change:y", ->
       node.nofloNode.metadata.x = node.get 'x'
       node.nofloNode.metadata.y = node.get 'y'
+    # Add IIPs from state
+    if node.attributes.state
+        console.log node.get "state"
+        for port in node.get "state"
+          console.log port
+    # Sync state
     node.on "change:state", (port, value) ->
       metadata = {}
       for iip in graph.initializers

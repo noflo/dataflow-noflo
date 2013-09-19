@@ -196,7 +196,7 @@ require.relative = function(parent) {
   return localRequire;
 };
 require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, require, module){
-/*! dataflow.js - v0.0.7 - 2013-09-17 (4:39:34 PM GMT+0200)
+/*! dataflow.js - v0.0.7 - 2013-09-18 (5:09:47 PM GMT+0200)
 * Copyright (c) 2013 Forrest Oliphant; Licensed MIT, GPL */
 (function(Backbone) {
   var ensure = function (obj, key, type) {
@@ -715,7 +715,8 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         var Card = Dataflow.prototype.module("card");
         var card = new Card.Model({
           dataflow: this,
-          card: {el:info.menu} // HACK since plugins are not bb views
+          card: {el:info.menu}, // HACK since plugins are not bb views
+          pinned: (info.pinned ? true : false)
         });
 
         this.actionBar.get('actions').add({
@@ -1247,16 +1248,30 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
 
   var Edge = Dataflow.prototype.module("edge");
 
+  var EdgeEvent = Backbone.Model.extend({
+    defaults: {
+      "type": "data",
+      "data": "",
+      "group": ""
+    }
+  });
+
+  var EdgeEventLog = Backbone.Collection.extend({
+    model: EdgeEvent
+  });
+
   Edge.Model = Backbone.Model.extend({
     defaults: {
       "z": 0,
       "route": 0,
-      "selected": false
+      "selected": false,
+      "log": null
     },
     initialize: function() {
       var nodes, sourceNode, targetNode;
       var preview = this.get("preview");
       this.parentGraph = this.get("parentGraph");
+      this.attributes.log = new EdgeEventLog();
       if (preview) {
         // Preview edge
         nodes = this.get("parentGraph").nodes;
@@ -3231,17 +3246,22 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
       '<h1>Edge</h1>'+
       '<h2 class="dataflow-edge-inspector-id"><%- id %></h2>'+
     '</div>'+
-    '<div class="dataflow-edge-inspector-route-choose"></div>';
+    '<div class="dataflow-edge-inspector-route-choose"></div>'+
+    '<ul class="dataflow-edge-inspector-events"></ul>';
+
+  var logTemplate = '<li class="<%- type %>"><%- group %><%- data %></li>';
   
   Edge.InspectView = Backbone.View.extend({
     tagName: "div",
     className: "dataflow-edge-inspector",
     positions: null,
     template: _.template(template),
+    showLogs: 20,
     initialize: function() {
       this.$el.html( this.template(this.model) );
 
       var $choose = this.$el.children(".dataflow-edge-inspector-route-choose");
+      this.$log = this.$el.children('.dataflow-edge-inspector-events');
 
       var changeRoute = function(event){
         var route = $(event.target).data("route");
@@ -3260,16 +3280,43 @@ require.register("meemoo-dataflow/build/dataflow.build.js", function(exports, re
         $choose.append(button);
       }
 
+      reqFrame = window.requestAnimationFrame ? window.requestAnimationFrame : window.webkitRequestAnimationFrame;
+
       this.listenTo(this.model, "change:route", this.render);
       this.listenTo(this.model, "remove", this.remove);
+      this.listenTo(this.model.get('log'), 'add', function () { reqFrame(this.renderLog.bind(this)); });
+      this.renderLog();
     },
     render: function(){
       var route = this.model.get("route");
       var $choose = this.$el.children(".dataflow-edge-inspector-route-choose");
       $choose.children(".active").removeClass("active");
       $choose.children(".route"+route).addClass("active");
-
       return this;
+    },
+    renderLog: function () {
+      var frag = document.createDocumentFragment();
+      var logs = this.model.get('log');
+      var logsToShow;
+      if (logs.length > this.showLogs) {
+        logsToShow = logs.rest(logs.length - this.showLogs);
+      } else {
+        logsToShow = logs.toArray();
+      }
+      _.each(logsToShow, function (item) {
+        this.renderLogItem(item, frag);
+      }, this);
+      this.$log.html(frag);
+      this.$log[0].scrollTop = this.$log[0].scrollHeight;
+    },
+    renderLogItem: function (item, fragment) {
+      var html = $(_.template(logTemplate, item.toJSON()));
+      if (fragment && fragment.appendChild) {
+        fragment.appendChild(html[0]);
+      } else {
+        this.$log.append(html);
+        this.$log[0].scrollTop = this.$log[0].scrollHeight;
+      }
     }
   });
 
@@ -12701,6 +12748,7 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
     return dataflow.plugins.log.add("edge removed.");
   });
   dataflow.on("node:add", function(dfGraph, node) {
+    var port, _i, _len, _ref;
     if (dfGraph !== graph.dataflowGraph) {
       return;
     }
@@ -12719,12 +12767,20 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
       node.nofloNode.metadata.x = node.get('x');
       return node.nofloNode.metadata.y = node.get('y');
     });
-    node.on("change:state", function(port, value) {
-      var iip, metadata, _i, _len, _ref;
-      metadata = {};
-      _ref = graph.initializers;
+    if (node.attributes.state) {
+      console.log(node.get("state"));
+      _ref = node.get("state");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        iip = _ref[_i];
+        port = _ref[_i];
+        console.log(port);
+      }
+    }
+    node.on("change:state", function(port, value) {
+      var iip, metadata, _j, _len1, _ref1;
+      metadata = {};
+      _ref1 = graph.initializers;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        iip = _ref1[_j];
         if (!iip) {
           continue;
         }
@@ -12739,11 +12795,11 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
       return graph.addInitial(value, node.nofloNode.id, port, metadata);
     });
     return node.on("bang", function(port) {
-      var iip, metadata, _i, _len, _ref;
+      var iip, metadata, _j, _len1, _ref1;
       metadata = {};
-      _ref = graph.initializers;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        iip = _ref[_i];
+      _ref1 = graph.initializers;
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        iip = _ref1[_j];
         if (!iip) {
           continue;
         }
