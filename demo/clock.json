@@ -88,13 +88,6 @@
         "y": 319
       }
     },
-    "secondTick": {
-      "component": "core/RunInterval",
-      "metadata": {
-        "x": 341,
-        "y": 108
-      }
-    },
     "createDate": {
       "component": "objects/CreateDate",
       "metadata": {
@@ -107,6 +100,13 @@
       "metadata": {
         "x": 617,
         "y": 325
+      }
+    },
+    "animation frame": {
+      "component": "dom/RequestAnimationFrame",
+      "metadata": {
+        "x": 344,
+        "y": 66
       }
     }
   },
@@ -218,16 +218,6 @@
     },
     {
       "src": {
-        "process": "secondTick",
-        "port": "out"
-      },
-      "tgt": {
-        "process": "createDate",
-        "port": "in"
-      }
-    },
-    {
-      "src": {
         "process": "split",
         "port": "out"
       },
@@ -286,10 +276,16 @@
       }
     },
     {
-      "data": true,
+      "src": {
+        "process": "animation frame",
+        "port": "frame"
+      },
       "tgt": {
-        "process": "secondTick",
-        "port": "stop"
+        "process": "createDate",
+        "port": "in"
+      },
+      "metadata": {
+        "route": 0
       }
     },
     {
@@ -328,13 +324,6 @@
       }
     },
     {
-      "data": 20,
-      "tgt": {
-        "process": "secondTick",
-        "port": "interval"
-      }
-    },
-    {
       "data": "getTimezoneOffset",
       "tgt": {
         "process": "getTimezoneOffset",
@@ -353,6 +342,13 @@
       "tgt": {
         "process": "makeTimezoneAngle",
         "port": "divisor"
+      }
+    },
+    {
+      "data": true,
+      "tgt": {
+        "process": "animation frame",
+        "port": "start"
       }
     }
   ]

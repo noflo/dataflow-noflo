@@ -11580,7 +11580,9 @@ WriteHtml = (function(_super) {
       html: new noflo.Port('string'),
       container: new noflo.Port('object')
     };
-    this.outPorts = {};
+    this.outPorts = {
+      container: new noflo.Port('object')
+    };
     this.inPorts.html.on('data', function(data) {
       _this.html = data;
       if (_this.container) {
@@ -11597,7 +11599,11 @@ WriteHtml = (function(_super) {
 
   WriteHtml.prototype.writeHtml = function() {
     this.container.innerHTML = this.html;
-    return this.html = null;
+    this.html = null;
+    if (this.outPorts.container.isAttached()) {
+      this.outPorts.container.send(this.container);
+      return this.outPorts.container.disconnect();
+    }
   };
 
   return WriteHtml;
@@ -11657,8 +11663,61 @@ exports.getComponent = function() {
 };
 
 });
+require.register("noflo-noflo-dom/components/RequestAnimationFrame.js", function(exports, require, module){
+var RequestAnimationFrame, noflo, requestAnimationFrame,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+noflo = require('noflo');
+
+requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback, element) {
+  return window.setTimeout(function() {
+    return callback(+new Date());
+  }, 1000 / 60);
+};
+
+RequestAnimationFrame = (function(_super) {
+  __extends(RequestAnimationFrame, _super);
+
+  RequestAnimationFrame.prototype.description = 'Sends bangs that correspond with screen refresh rate.';
+
+  function RequestAnimationFrame() {
+    var _this = this;
+    this.running = false;
+    this.inPorts = {
+      start: new noflo.Port('bang'),
+      stop: new noflo.Port('bang')
+    };
+    this.outPorts = {
+      frame: new noflo.Port('bang')
+    };
+    this.inPorts.start.on('data', function(data) {
+      _this.running = true;
+      return _this.animate();
+    });
+    this.inPorts.stop.on('data', function(data) {
+      return _this.running = false;
+    });
+  }
+
+  RequestAnimationFrame.prototype.animate = function() {
+    if (this.running) {
+      requestAnimationFrame(this.animate.bind(this));
+      return this.outPorts.frame.send(true);
+    }
+  };
+
+  return RequestAnimationFrame;
+
+})(noflo.Component);
+
+exports.getComponent = function() {
+  return new RequestAnimationFrame;
+};
+
+});
 require.register("noflo-noflo-dom/component.json", function(exports, require, module){
-module.exports = JSON.parse('{"name":"noflo-dom","description":"Document Object Model components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-dom","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/AddClass.js","components/AppendChild.js","components/CreateElement.js","components/CreateFragment.js","components/GetAttribute.js","components/GetElement.js","components/ReadHtml.js","components/WriteHtml.js","components/RemoveClass.js","index.js"],"json":["component.json"],"noflo":{"components":{"AddClass":"components/AddClass.js","AppendChild":"components/AppendChild.js","CreateElement":"components/CreateElement.js","CreateFragment":"components/CreateFragment.js","GetAttribute":"components/GetAttribute.js","GetElement":"components/GetElement.js","WriteHtml":"components/WriteHtml.js","ReadHtml":"components/ReadHtml.js","RemoveClass":"components/RemoveClass.js"}}}');
+module.exports = JSON.parse('{"name":"noflo-dom","description":"Document Object Model components for NoFlo","author":"Henri Bergius <henri.bergius@iki.fi>","repo":"noflo/noflo-dom","version":"0.0.1","keywords":[],"dependencies":{"noflo/noflo":"*"},"scripts":["components/AddClass.js","components/AppendChild.js","components/CreateElement.js","components/CreateFragment.js","components/GetAttribute.js","components/GetElement.js","components/ReadHtml.js","components/WriteHtml.js","components/RemoveClass.js","components/RequestAnimationFrame.js","index.js"],"json":["component.json"],"noflo":{"components":{"AddClass":"components/AddClass.js","AppendChild":"components/AppendChild.js","CreateElement":"components/CreateElement.js","CreateFragment":"components/CreateFragment.js","GetAttribute":"components/GetAttribute.js","GetElement":"components/GetElement.js","WriteHtml":"components/WriteHtml.js","ReadHtml":"components/ReadHtml.js","RemoveClass":"components/RemoveClass.js","RequestAnimationFrame":"components/RequestAnimationFrame.js"}}}');
 });
 require.register("noflo-noflo-css/index.js", function(exports, require, module){
 /*
@@ -12768,7 +12827,6 @@ DataflowNoflo.loadGraph = function(graph, dataflow, callback) {
       return node.nofloNode.metadata.y = node.get('y');
     });
     if (node.attributes.state) {
-      console.log(node.get("state"));
       _ref = node.get("state");
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         port = _ref[_i];
@@ -13255,6 +13313,7 @@ require.alias("noflo-noflo-dom/components/GetElement.js", "dataflow-noflo/deps/n
 require.alias("noflo-noflo-dom/components/ReadHtml.js", "dataflow-noflo/deps/noflo-dom/components/ReadHtml.js");
 require.alias("noflo-noflo-dom/components/WriteHtml.js", "dataflow-noflo/deps/noflo-dom/components/WriteHtml.js");
 require.alias("noflo-noflo-dom/components/RemoveClass.js", "dataflow-noflo/deps/noflo-dom/components/RemoveClass.js");
+require.alias("noflo-noflo-dom/components/RequestAnimationFrame.js", "dataflow-noflo/deps/noflo-dom/components/RequestAnimationFrame.js");
 require.alias("noflo-noflo-dom/index.js", "dataflow-noflo/deps/noflo-dom/index.js");
 require.alias("noflo-noflo-dom/index.js", "noflo-dom/index.js");
 require.alias("noflo-noflo/src/lib/Graph.js", "noflo-noflo-dom/deps/noflo/src/lib/Graph.js");

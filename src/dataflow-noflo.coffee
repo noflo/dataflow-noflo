@@ -123,9 +123,8 @@ DataflowNoflo.loadGraph = (graph, dataflow, callback) ->
       node.nofloNode.metadata.y = node.get 'y'
     # Add IIPs from state
     if node.attributes.state
-        console.log node.get "state"
-        for port in node.get "state"
-          console.log port
+      for port in node.get "state"
+        console.log port
     # Sync state
     node.on "change:state", (port, value) ->
       metadata = {}
